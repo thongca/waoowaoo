@@ -35,6 +35,15 @@ function isCapabilityValue(value: unknown): value is CapabilityValue {
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
 }
 
+const CAPABILITY_VALUE_ALIASES: Record<string, Record<string, Record<string, CapabilityOptionValue>>> = {
+  'yescale::nano-banana-2': {
+    thinking: {
+      low: 'minimal',
+      medium: 'minimal',
+    },
+  },
+}
+
 function getNamespaceCapabilities(
   modelType: UnifiedModelType,
   capabilities: ModelCapabilities | undefined,
@@ -62,6 +71,36 @@ export function getCapabilityOptionFields(
     fields[field] = rawValue as CapabilityOptionValue[]
   }
   return fields
+}
+
+function normalizeCapabilityOptionValue(
+  modelKey: string,
+  field: string,
+  value: CapabilityValue,
+  allowedValues: readonly CapabilityOptionValue[] | undefined,
+): CapabilityValue {
+  if (typeof value !== 'string' || !allowedValues) return value
+
+  const normalized = CAPABILITY_VALUE_ALIASES[modelKey]?.[field]?.[value]
+  if (normalized === undefined) return value
+  return allowedValues.includes(normalized) ? normalized : value
+}
+
+export function normalizeCapabilitySelectionForModel(input: {
+  modelKey: string
+  modelType: UnifiedModelType
+  capabilities?: ModelCapabilities
+  selection?: Record<string, CapabilityValue> | null
+}): Record<string, CapabilityValue> {
+  const selection = input.selection || {}
+  const optionFields = getCapabilityOptionFields(input.modelType, input.capabilities)
+  const normalized: Record<string, CapabilityValue> = {}
+
+  for (const [field, value] of Object.entries(selection)) {
+    normalized[field] = normalizeCapabilityOptionValue(input.modelKey, field, value, optionFields[field])
+  }
+
+  return normalized
 }
 
 export function hasCapabilityOptions(
@@ -113,7 +152,7 @@ export function validateCapabilitySelectionForModel(input: {
   const issues: CapabilitySelectionValidationIssue[] = []
   const optionFields = getCapabilityOptionFields(input.modelType, input.capabilities)
   const optionFieldNames = new Set(Object.keys(optionFields))
-  const selection = input.selection || {}
+  const selection = normalizeCapabilitySelectionForModel(input)
 
   if (Object.keys(optionFields).length === 0) {
     if (Object.keys(selection).length > 0) {
@@ -259,7 +298,12 @@ export function resolveGenerationOptionsForModel(input: {
   const overrides = pickSelectionForModel(input.capabilityOverrides, input.modelKey)
   const runtime = input.runtimeSelections
 
-  const selection = mergeSelectionRecords(defaults, overrides, runtime)
+  const selection = normalizeCapabilitySelectionForModel({
+    modelKey: input.modelKey,
+    modelType: input.modelType,
+    capabilities: input.capabilities,
+    selection: mergeSelectionRecords(defaults, overrides, runtime),
+  })
 
   // Custom model not in built-in catalog: skip validation, pass through selections directly
   if (input.capabilities === undefined) {
@@ -278,28 +322,25 @@ export function resolveGenerationOptionsForModel(input: {
   let normalizedSelection = { ...selection }
   const autofillIssues: CapabilitySelectionValidationIssue[] = []
 
-  // V7: 针对 image 模型缺少 resolution 的情况，如果 catalog 中声明了 resolutionOptions，
-  // 且用户在配置中完全未设置该字段，则自动使用第一个可选值作为默认值，提升 UI/UX。
+  // Image models often require every declared option field. If project/user config
+  // omits a required field, auto-fill the first catalog option so runtime payloads
+  // remain valid while still allowing explicit overrides from the UI.
   if (input.modelType === 'image') {
     const optionFields = getCapabilityOptionFields(input.modelType, input.capabilities)
-    const hasResolutionOptions = Array.isArray(optionFields.resolution) && optionFields.resolution.length > 0
-    const hasResolutionInSelection = Object.prototype.hasOwnProperty.call(normalizedSelection, 'resolution')
+    for (const [field, allowedValues] of Object.entries(optionFields)) {
+      if (!Array.isArray(allowedValues) || allowedValues.length === 0) continue
+      if (Object.prototype.hasOwnProperty.call(normalizedSelection, field)) continue
 
-    if (hasResolutionOptions && !hasResolutionInSelection) {
-      const firstResolution = optionFields.resolution[0]
-
-      // 只有在 capabilities 确实声明了 resolutionOptions，且 validate 阶段报告了
-      // 「resolution 必填但缺失」的情况下，才进行自动补全，避免掩盖其他问题。
-      const missingResolutionIssue = precheckIssues.find(
+      const missingIssue = precheckIssues.find(
         (issue) =>
           issue.code === 'CAPABILITY_REQUIRED'
-          && issue.field === `capabilities.${input.modelKey}.resolution`,
+          && issue.field === `capabilities.${input.modelKey}.${field}`,
       )
 
-      if (missingResolutionIssue && optionFields.resolution.includes(firstResolution)) {
+      if (missingIssue) {
         normalizedSelection = {
           ...normalizedSelection,
-          resolution: firstResolution,
+          [field]: allowedValues[0],
         }
       }
     }

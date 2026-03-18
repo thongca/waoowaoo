@@ -25,6 +25,41 @@
     "pleaseSelect": "请选择...",
     "selectModel": "选择模型",
     "paramConfig": "参数配置",
+    "capability": {
+        "resolution": "画面比例",
+        "google_search": "Google 搜索",
+        "thinking": "思考强度",
+        "voice": "音色",
+        "rate": "语速"
+    },
+    "capabilityOption": {
+        "voice": {
+            "alloy": "Alloy",
+            "ash": "Ash",
+            "ballad": "Ballad",
+            "coral": "Coral",
+            "echo": "Echo",
+            "sage": "Sage",
+            "shimmer": "Shimmer",
+            "verse": "Verse"
+        },
+        "rate": {
+            "normal": "正常速度 (1.0x)",
+            "plus20": "轻微加速 (1.2x)",
+            "plus50": "加速 (1.5x)",
+            "plus100": "快速 (2.0x)"
+        },
+        "google_search": {
+            "disable": "关闭",
+            "webSearch": "网页搜索",
+            "imageSearch": "图片搜索",
+            "both": "网页 + 图片"
+        },
+        "thinking": {
+            "minimal": "最少",
+            "high": "高"
+        }
+    },
     "fixed": "固定",
     "noParams": "该模型无可配置参数",
     "confirm": "确认",

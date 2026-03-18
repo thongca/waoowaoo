@@ -80,7 +80,7 @@ export async function chatCompletionStream(
   const resolvedModelId = selection.modelId
   const provider = selection.provider
   const providerKey = getProviderKey(provider).toLowerCase()
-  const providerConfig = await getProviderConfig(userId, provider)
+  const providerConfig = await getProviderConfig(userId, provider, { modelId: resolvedModelId })
   const gatewayRoute = OFFICIAL_ONLY_PROVIDER_KEYS.has(providerKey)
     ? 'official'
     : (providerConfig.gatewayRoute || resolveModelGatewayRoute(provider))
@@ -109,7 +109,7 @@ export async function chatCompletionStream(
     if (gatewayRoute === 'openai-compat') {
       // openai-compatible protocol probing only applies to openai-compatible + llm.
       // gemini-compatible is explicitly excluded and must not enter this branch.
-      if (providerKey !== 'openai-compatible') {
+      if (providerKey !== 'openai-compatible' && providerKey !== 'yescale') {
         throw new Error(`OPENAI_COMPAT_PROVIDER_UNSUPPORTED: ${provider}`)
       }
       if (!selection.llmProtocol) {

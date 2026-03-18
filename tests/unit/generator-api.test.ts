@@ -134,6 +134,21 @@ describe('generator-api gateway routing', () => {
     expect(result).toEqual({ success: true, imageUrl: 'official-image' })
   })
 
+  it('routes yescale image requests to provider generator before openai-compat gateway', async () => {
+    resolveModelSelectionMock.mockResolvedValueOnce({
+      provider: 'yescale',
+      modelId: 'nano-banana-2',
+      modelKey: 'yescale::nano-banana-2',
+      mediaType: 'image',
+    })
+
+    const result = await generateImage('user-1', 'yescale::nano-banana-2', 'draw house')
+
+    expect(createImageGeneratorMock).toHaveBeenCalledWith('yescale', 'nano-banana-2')
+    expect(generateImageViaOpenAICompatMock).not.toHaveBeenCalled()
+    expect(result).toEqual({ success: true, imageUrl: 'official-image' })
+  })
+
   it('routes gemini-compatible image to official generator', async () => {
     resolveModelSelectionMock.mockResolvedValueOnce({
       provider: 'gemini-compatible:gm-1',
@@ -222,6 +237,21 @@ describe('generator-api gateway routing', () => {
     expect(result).toEqual({ success: true, videoUrl: 'official-video' })
   })
 
+  it('routes yescale video requests to provider generator before openai-compat gateway', async () => {
+    resolveModelSelectionMock.mockResolvedValueOnce({
+      provider: 'yescale',
+      modelId: 'kling-2.5-turbo',
+      modelKey: 'yescale::kling-2.5-turbo',
+      mediaType: 'video',
+    })
+
+    const result = await generateVideo('user-1', 'yescale::kling-2.5-turbo', 'https://example.com/source.png')
+
+    expect(createVideoGeneratorMock).toHaveBeenCalledWith('yescale')
+    expect(generateVideoViaOpenAICompatMock).not.toHaveBeenCalled()
+    expect(result).toEqual({ success: true, videoUrl: 'official-video' })
+  })
+
   it('keeps audio generation on provider generator path', async () => {
     resolveModelSelectionMock.mockResolvedValueOnce({
       provider: 'fal',
@@ -233,6 +263,20 @@ describe('generator-api gateway routing', () => {
     const result = await generateAudio('user-1', 'fal::tts-1', 'hello')
 
     expect(createAudioGeneratorMock).toHaveBeenCalledWith('fal')
+    expect(result).toEqual({ success: true, audioUrl: 'audio' })
+  })
+
+  it('routes yescale audio requests to provider generator path', async () => {
+    resolveModelSelectionMock.mockResolvedValueOnce({
+      provider: 'yescale',
+      modelId: 'gpt-4o-mini-tts',
+      modelKey: 'yescale::gpt-4o-mini-tts',
+      mediaType: 'audio',
+    })
+
+    const result = await generateAudio('user-1', 'yescale::gpt-4o-mini-tts', 'hello world')
+
+    expect(createAudioGeneratorMock).toHaveBeenCalledWith('yescale')
     expect(result).toEqual({ success: true, audioUrl: 'audio' })
   })
 

@@ -12,6 +12,7 @@ import {
 import {
   resolveBuiltinModelContext,
   getCapabilityOptionFields,
+  normalizeCapabilitySelectionForModel,
   validateCapabilitySelectionsPayload,
   type CapabilityModelContext} from '@/lib/model-capabilities/lookup'
 
@@ -189,9 +190,15 @@ function sanitizeCapabilityOverrides(
 
     const optionFields = getCapabilityOptionFields(context.modelType, context.capabilities)
     if (Object.keys(optionFields).length === 0) continue
+    const normalizedSelection = normalizeCapabilitySelectionForModel({
+      modelKey,
+      modelType: context.modelType,
+      capabilities: context.capabilities,
+      selection,
+    })
 
     const cleanedSelection: Record<string, string | number | boolean> = {}
-    for (const [field, value] of Object.entries(selection)) {
+    for (const [field, value] of Object.entries(normalizedSelection)) {
       const allowedValues = optionFields[field]
       if (!allowedValues) continue
       if (!allowedValues.includes(value)) continue

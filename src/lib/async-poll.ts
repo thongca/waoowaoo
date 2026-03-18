@@ -47,12 +47,13 @@ function getErrorMessage(error: unknown): string {
  * 解析 externalId 获取 provider、type 和请求信息
  */
 export function parseExternalId(externalId: string): {
-    provider: 'FAL' | 'ARK' | 'GEMINI' | 'GOOGLE' | 'MINIMAX' | 'VIDU' | 'OPENAI' | 'OCOMPAT' | 'BAILIAN' | 'SILICONFLOW' | 'UNKNOWN'
+    provider: 'FAL' | 'ARK' | 'GEMINI' | 'GOOGLE' | 'MINIMAX' | 'VIDU' | 'OPENAI' | 'OCOMPAT' | 'BAILIAN' | 'SILICONFLOW' | 'YESCALE' | 'UNKNOWN'
     type: 'VIDEO' | 'IMAGE' | 'BATCH' | 'UNKNOWN'
     endpoint?: string
     requestId: string
     providerToken?: string
     modelKeyToken?: string
+    keyGroup?: string
 } {
     // 标准格式：PROVIDER:TYPE:...
     if (externalId.startsWith('FAL:')) {
@@ -209,9 +210,26 @@ export function parseExternalId(externalId: string): {
         }
     }
 
+    if (externalId.startsWith('YESCALE:')) {
+        const parts = externalId.split(':')
+        const type = parts[1]
+        const hasGroupedKey = parts.length >= 4
+        const keyGroup = hasGroupedKey ? parts[2] : undefined
+        const requestId = hasGroupedKey ? parts.slice(3).join(':') : parts.slice(2).join(':')
+        if ((type !== 'VIDEO' && type !== 'IMAGE') || !requestId) {
+            throw new Error(`无效 YESCALE externalId: "${externalId}"，应为 YESCALE:TYPE:taskId 或 YESCALE:TYPE:keyGroup:taskId`)
+        }
+        return {
+            provider: 'YESCALE',
+            type: type as 'VIDEO' | 'IMAGE',
+            requestId,
+            ...(keyGroup ? { keyGroup } : {}),
+        }
+    }
+
     throw new Error(
         `无法识别的 externalId 格式: "${externalId}". ` +
-        `支持的格式: FAL:TYPE:endpoint:requestId, ARK:TYPE:requestId, GEMINI:BATCH:batchName, GOOGLE:VIDEO:operationName, MINIMAX:TYPE:taskId, VIDU:TYPE:taskId, OPENAI:VIDEO:providerToken:videoId, OCOMPAT:TYPE:providerToken:modelKeyToken:taskId, BAILIAN:TYPE:requestId, SILICONFLOW:TYPE:requestId`
+        `支持的格式: FAL:TYPE:endpoint:requestId, ARK:TYPE:requestId, GEMINI:BATCH:batchName, GOOGLE:VIDEO:operationName, MINIMAX:TYPE:taskId, VIDU:TYPE:taskId, OPENAI:VIDEO:providerToken:videoId, OCOMPAT:TYPE:providerToken:modelKeyToken:taskId, BAILIAN:TYPE:requestId, SILICONFLOW:TYPE:requestId, YESCALE:TYPE:taskId, YESCALE:TYPE:keyGroup:taskId`
     )
 }
 
@@ -251,6 +269,8 @@ export async function pollAsyncTask(
             return await pollBailianTask(parsed.requestId, userId)
         case 'SILICONFLOW':
             return await pollSiliconFlowTask(parsed.requestId)
+        case 'YESCALE':
+            return await pollYeScaleTask(parsed.type, parsed.requestId, userId, parsed.keyGroup)
         default:
             // 🔥 移除 fallback：未知 provider 直接抛出错误
             throw new Error(`未知的 Provider: ${parsed.provider}`)
@@ -857,6 +877,130 @@ async function pollSiliconFlowTask(requestId: string): Promise<PollResult> {
     }
 }
 
+type YeScaleTaskResultMedia = {
+    url?: string
+    content_type?: string
+    duration?: string | number
+}
+
+type YeScaleTaskQueryResponse = {
+    task_id?: string
+    status?: string
+    progress?: string
+    err_reason?: string
+    message?: string
+    task_result?: {
+        videos?: YeScaleTaskResultMedia[]
+        images?: YeScaleTaskResultMedia[]
+        audio?: YeScaleTaskResultMedia[]
+        text?: string
+        url?: string
+    }
+}
+
+function readYeScaleResultUrl(
+    type: 'VIDEO' | 'IMAGE' | 'BATCH' | 'UNKNOWN',
+    data: YeScaleTaskQueryResponse,
+): { resultUrl?: string; videoUrl?: string; imageUrl?: string } {
+    const taskResult = data.task_result
+    const firstVideoUrl = typeof taskResult?.videos?.[0]?.url === 'string' ? taskResult.videos[0].url.trim() : ''
+    const firstImageUrl = typeof taskResult?.images?.[0]?.url === 'string' ? taskResult.images[0].url.trim() : ''
+    const genericUrl = typeof taskResult?.url === 'string' ? taskResult.url.trim() : ''
+
+    if (type === 'VIDEO') {
+        const videoUrl = firstVideoUrl || genericUrl
+        return videoUrl ? { resultUrl: videoUrl, videoUrl } : {}
+    }
+
+    if (type === 'IMAGE') {
+        const imageUrl = firstImageUrl || genericUrl
+        return imageUrl ? { resultUrl: imageUrl, imageUrl } : {}
+    }
+
+    if (firstVideoUrl) {
+        return { resultUrl: firstVideoUrl, videoUrl: firstVideoUrl }
+    }
+    if (firstImageUrl) {
+        return { resultUrl: firstImageUrl, imageUrl: firstImageUrl }
+    }
+    if (genericUrl) {
+        return { resultUrl: genericUrl }
+    }
+    return {}
+}
+
+async function pollYeScaleTask(
+    type: 'VIDEO' | 'IMAGE' | 'BATCH' | 'UNKNOWN',
+    requestId: string,
+    userId: string,
+    keyGroup?: string,
+): Promise<PollResult> {
+    try {
+        const { apiKey } = await getProviderConfig(userId, 'yescale', { keyGroup })
+        const response = await fetch(`https://api.yescale.io/task/${encodeURIComponent(requestId)}`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+            },
+        })
+
+        const rawText = await response.text().catch(() => '')
+        let data: YeScaleTaskQueryResponse = {}
+        if (rawText.trim()) {
+            try {
+                data = JSON.parse(rawText) as YeScaleTaskQueryResponse
+            } catch {
+                return {
+                    status: 'failed',
+                    error: `YEScale: invalid task response ${rawText.slice(0, 200)}`,
+                }
+            }
+        }
+
+        if (!response.ok) {
+            const message = (typeof data.err_reason === 'string' && data.err_reason.trim())
+                || (typeof data.message === 'string' && data.message.trim())
+                || `HTTP ${response.status}`
+            return {
+                status: 'failed',
+                error: `YEScale: ${message}`,
+            }
+        }
+
+        const status = typeof data.status === 'string' ? data.status.trim().toUpperCase() : ''
+        if (status === 'SUCCESS' || status === 'SUCCEEDED') {
+            const resolved = readYeScaleResultUrl(type, data)
+            if (!resolved.resultUrl) {
+                return {
+                    status: 'failed',
+                    error: 'YEScale: 任务完成但未返回结果URL',
+                }
+            }
+            return {
+                status: 'completed',
+                ...resolved,
+            }
+        }
+
+        if (status === 'FAILURE' || status === 'FAILED' || status === 'ERROR') {
+            const message = (typeof data.err_reason === 'string' && data.err_reason.trim())
+                || (typeof data.message === 'string' && data.message.trim())
+                || '任务失败'
+            return {
+                status: 'failed',
+                error: `YEScale: ${message}`,
+            }
+        }
+
+        return { status: 'pending' }
+    } catch (error: unknown) {
+        return {
+            status: 'failed',
+            error: `YEScale: ${getErrorMessage(error)}`,
+        }
+    }
+}
+
 /**
  * 查询 Vidu 任务状态
  */
@@ -948,7 +1092,7 @@ async function queryViduTaskStatus(
  * 创建标准格式的 externalId
  */
 export function formatExternalId(
-    provider: 'FAL' | 'ARK' | 'GEMINI' | 'GOOGLE' | 'MINIMAX' | 'VIDU' | 'OPENAI' | 'OCOMPAT' | 'BAILIAN' | 'SILICONFLOW',
+    provider: 'FAL' | 'ARK' | 'GEMINI' | 'GOOGLE' | 'MINIMAX' | 'VIDU' | 'OPENAI' | 'OCOMPAT' | 'BAILIAN' | 'SILICONFLOW' | 'YESCALE',
     type: 'VIDEO' | 'IMAGE' | 'BATCH',
     requestId: string,
     endpoint?: string,

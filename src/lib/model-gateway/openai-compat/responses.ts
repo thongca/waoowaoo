@@ -95,7 +95,7 @@ function extractResponsesUsage(payload: unknown): ResponsesUsage {
 }
 
 export async function runOpenAICompatResponsesCompletion(input: OpenAICompatChatRequest) {
-  const config = await resolveOpenAICompatClientConfig(input.userId, input.providerId)
+  const config = await resolveOpenAICompatClientConfig(input.userId, input.providerId, input.modelId)
   const endpoint = toEndpoint(config.baseUrl, '/responses')
   const response = await fetch(endpoint, {
     method: 'POST',

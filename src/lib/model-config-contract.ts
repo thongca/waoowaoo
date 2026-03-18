@@ -31,6 +31,8 @@ export interface LLMCapabilities {
 
 export interface ImageCapabilities {
   resolutionOptions?: string[]
+  google_searchOptions?: string[]
+  thinkingOptions?: string[]
   fieldI18n?: CapabilityFieldI18nMap
 }
 
@@ -85,6 +87,8 @@ const LLM_ALLOWED_FIELDS = new Set<keyof LLMCapabilities>([
 
 const IMAGE_ALLOWED_FIELDS = new Set<keyof ImageCapabilities>([
   'resolutionOptions',
+  'google_searchOptions',
+  'thinkingOptions',
   'fieldI18n',
 ])
 
@@ -288,8 +292,28 @@ function validateImageCapabilities(issues: CapabilityValidationIssue[], raw: unk
     })
   }
 
+  const googleSearchOptions = raw.google_searchOptions
+  if (googleSearchOptions !== undefined && !isStringArray(googleSearchOptions)) {
+    issues.push({
+      code: 'CAPABILITY_FIELD_INVALID',
+      field: 'capabilities.image.google_searchOptions',
+      message: 'google_searchOptions must be a non-empty string array',
+    })
+  }
+
+  const thinkingOptions = raw.thinkingOptions
+  if (thinkingOptions !== undefined && !isStringArray(thinkingOptions)) {
+    issues.push({
+      code: 'CAPABILITY_FIELD_INVALID',
+      field: 'capabilities.image.thinkingOptions',
+      message: 'thinkingOptions must be a non-empty string array',
+    })
+  }
+
   validateFieldI18nMap(issues, 'image', raw.fieldI18n, {
     resolution: isStringArray(resolutionOptions) ? resolutionOptions : undefined,
+    google_search: isStringArray(googleSearchOptions) ? googleSearchOptions : undefined,
+    thinking: isStringArray(thinkingOptions) ? thinkingOptions : undefined,
   })
 }
 

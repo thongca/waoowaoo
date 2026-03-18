@@ -8,6 +8,8 @@ import {
   getProviderKey,
   getProviderTutorial,
   matchesModelKey,
+  YESCALE_MODEL_GROUP_DEFAULTS,
+  YESCALE_KEY_GROUP_ORDER,
 } from '../../types'
 import type {
   ModelFormState,
@@ -44,6 +46,7 @@ interface UseProviderCardStateParams {
   allModels?: ProviderCardProps['allModels']
   defaultModels: ProviderCardProps['defaultModels']
   onUpdateApiKey: ProviderCardProps['onUpdateApiKey']
+  onUpdateApiKeyGroups?: ProviderCardProps['onUpdateApiKeyGroups']
   onUpdateBaseUrl: ProviderCardProps['onUpdateBaseUrl']
   onUpdateModel: ProviderCardProps['onUpdateModel']
   onAddModel: ProviderCardProps['onAddModel']
@@ -169,12 +172,18 @@ function pickConfiguredLlmModel(params: {
 export function buildProviderConnectionPayload(params: {
   providerKey: string
   apiKey: string
+  apiKeyGroups?: Record<string, string>
   baseUrl?: string
   llmModel?: string
 }): ProviderConnectionPayload {
-  const apiKey = params.apiKey.trim()
   const compatibleBaseUrl = params.baseUrl?.trim()
   const llmModel = params.llmModel?.trim()
+  const apiKey = resolveProviderConnectionTestApiKey({
+    providerKey: params.providerKey,
+    apiKey: params.apiKey,
+    apiKeyGroups: params.apiKeyGroups,
+    llmModel,
+  })
   const isCompatibleProvider =
     params.providerKey === 'openai-compatible' || params.providerKey === 'gemini-compatible'
 
@@ -192,6 +201,51 @@ export function buildProviderConnectionPayload(params: {
     apiKey,
     ...(llmModel ? { llmModel } : {}),
   }
+}
+
+function hasNonEmptyApiKey(value: string | undefined): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+export function resolveProviderConnectionTestApiKey(params: {
+  providerKey: string
+  apiKey?: string
+  apiKeyGroups?: Record<string, string>
+  llmModel?: string
+}): string {
+  const trimmedApiKey = params.apiKey?.trim() || ''
+  if (params.providerKey !== 'yescale') {
+    return trimmedApiKey
+  }
+
+  if (hasNonEmptyApiKey(trimmedApiKey)) {
+    return trimmedApiKey
+  }
+
+  const apiKeyGroups = params.apiKeyGroups || {}
+  const preferredGroup = params.llmModel
+    ? YESCALE_MODEL_GROUP_DEFAULTS[params.llmModel]
+    : undefined
+  const preferredApiKey = preferredGroup ? apiKeyGroups[preferredGroup]?.trim() : ''
+  if (hasNonEmptyApiKey(preferredApiKey)) {
+    return preferredApiKey
+  }
+
+  for (const groupKey of YESCALE_KEY_GROUP_ORDER) {
+    const candidate = apiKeyGroups[groupKey]?.trim()
+    if (hasNonEmptyApiKey(candidate)) {
+      return candidate
+    }
+  }
+
+  for (const value of Object.values(apiKeyGroups)) {
+    const candidate = value?.trim()
+    if (hasNonEmptyApiKey(candidate)) {
+      return candidate
+    }
+  }
+
+  return ''
 }
 
 export function buildCustomPricingFromModelForm(
@@ -289,6 +343,7 @@ function toProviderCardModelType(type: CustomModel['type']): ProviderCardModelTy
 
 export interface UseProviderCardStateResult {
   providerKey: string
+  isYeScaleProvider: boolean
   isPresetProvider: boolean
   showBaseUrlEdit: boolean
   tutorial: ReturnType<typeof getProviderTutorial>
@@ -298,6 +353,8 @@ export interface UseProviderCardStateResult {
   isEditingUrl: boolean
   showKey: boolean
   tempKey: string
+  tempKeyGroups: Record<string, string>
+  showKeyGroups: Record<string, boolean>
   tempUrl: string
   showTutorial: boolean
   showAddForm: ProviderCardModelType | null
@@ -315,8 +372,13 @@ export interface UseProviderCardStateResult {
   setNewModel: (value: ModelFormState) => void
   setEditModel: (value: ModelFormState) => void
   setTempKey: (value: string) => void
+  setTempKeyGroups: (value: Record<string, string>) => void
   setTempUrl: (value: string) => void
   startEditKey: () => void
+  toggleKeyGroupVisibility: (groupKey: string) => void
+  updateTempKeyGroup: (groupKey: string, value: string) => void
+  handleSaveKeyGroups: () => void
+  handleCancelKeyGroups: () => void
   startEditUrl: () => void
   handleSaveKey: () => void
   handleCancelEdit: () => void
@@ -357,6 +419,7 @@ export function useProviderCardState({
   allModels,
   defaultModels,
   onUpdateApiKey,
+  onUpdateApiKeyGroups,
   onUpdateBaseUrl,
   onUpdateModel,
   onAddModel,
@@ -367,6 +430,8 @@ export function useProviderCardState({
   const [isEditingUrl, setIsEditingUrl] = useState(false)
   const [showKey, setShowKey] = useState(false)
   const [tempKey, setTempKey] = useState(provider.apiKey || '')
+  const [tempKeyGroups, setTempKeyGroups] = useState<Record<string, string>>(provider.apiKeyGroups || {})
+  const [showKeyGroups, setShowKeyGroups] = useState<Record<string, boolean>>({})
   const [tempUrl, setTempUrl] = useState(provider.baseUrl || '')
   const [showTutorial, setShowTutorial] = useState(false)
   const [showAddForm, setShowAddForm] = useState<ProviderCardModelType | null>(null)
@@ -381,6 +446,7 @@ export function useProviderCardState({
   const [assistantSavedEvent, setAssistantSavedEvent] = useState<AssistantSavedEvent | null>(null)
 
   const providerKey = getProviderKey(provider.id)
+  const isYeScaleProvider = providerKey === 'yescale'
   const assistantEnabled = providerKey === 'openai-compatible'
   const isPresetProvider = PRESET_PROVIDERS.some(
     (presetProvider) => presetProvider.id === provider.id,
@@ -436,6 +502,32 @@ export function useProviderCardState({
     setIsEditing(true)
   }
 
+  const updateTempKeyGroup = useCallback((groupKey: string, value: string) => {
+    setTempKeyGroups((previous) => ({
+      ...previous,
+      [groupKey]: value,
+    }))
+  }, [])
+
+  const toggleKeyGroupVisibility = useCallback((groupKey: string) => {
+    setShowKeyGroups((previous) => ({
+      ...previous,
+      [groupKey]: !previous[groupKey],
+    }))
+  }, [])
+
+  const handleSaveKeyGroups = useCallback(() => {
+    onUpdateApiKeyGroups?.(provider.id, tempKeyGroups)
+  }, [onUpdateApiKeyGroups, provider.id, tempKeyGroups])
+
+  const handleCancelKeyGroups = useCallback(() => {
+    const reset: Record<string, string> = {}
+    for (const groupKey of YESCALE_KEY_GROUP_ORDER) {
+      reset[groupKey] = provider.apiKeyGroups?.[groupKey] || ''
+    }
+    setTempKeyGroups(reset)
+  }, [provider.apiKeyGroups])
+
   const startEditUrl = () => {
     setTempUrl(provider.baseUrl || '')
     setIsEditingUrl(true)
@@ -465,6 +557,7 @@ export function useProviderCardState({
       const payload = buildProviderConnectionPayload({
         providerKey,
         apiKey: tempKey,
+        apiKeyGroups: tempKeyGroups,
         baseUrl: provider.baseUrl,
         llmModel: fallbackLlmModel,
       })
@@ -489,7 +582,7 @@ export function useProviderCardState({
       setKeyTestSteps([{ name: 'models', status: 'fail', message: 'Network error' }])
       setKeyTestStatus('failed')
     }
-  }, [defaultModels.analysisModel, doSaveKey, models, provider.baseUrl, providerKey, tempKey])
+  }, [defaultModels.analysisModel, doSaveKey, models, provider.baseUrl, providerKey, tempKey, tempKeyGroups])
 
   const handleForceSaveKey = useCallback(() => {
     doSaveKey()
@@ -507,6 +600,7 @@ export function useProviderCardState({
       const payload = buildProviderConnectionPayload({
         providerKey,
         apiKey: provider.apiKey || '',
+        apiKeyGroups: isYeScaleProvider ? tempKeyGroups : provider.apiKeyGroups,
         baseUrl: provider.baseUrl,
         llmModel: fallbackLlmModel,
       })
@@ -522,7 +616,7 @@ export function useProviderCardState({
       setKeyTestSteps([{ name: 'models', status: 'fail', message: 'Network error' }])
       setKeyTestStatus('failed')
     }
-  }, [defaultModels.analysisModel, models, provider.apiKey, provider.baseUrl, providerKey])
+  }, [defaultModels.analysisModel, isYeScaleProvider, models, provider.apiKey, provider.apiKeyGroups, provider.baseUrl, providerKey, tempKeyGroups])
 
   const handleDismissTest = useCallback(() => {
     setKeyTestStatus('idle')
@@ -776,6 +870,7 @@ export function useProviderCardState({
 
   return {
     providerKey,
+    isYeScaleProvider,
     isPresetProvider,
     showBaseUrlEdit,
     tutorial,
@@ -785,6 +880,8 @@ export function useProviderCardState({
     isEditingUrl,
     showKey,
     tempKey,
+    tempKeyGroups,
+    showKeyGroups,
     tempUrl,
     showTutorial,
     showAddForm,
@@ -802,8 +899,13 @@ export function useProviderCardState({
     setNewModel,
     setEditModel,
     setTempKey,
+    setTempKeyGroups,
     setTempUrl,
     startEditKey,
+    toggleKeyGroupVisibility,
+    updateTempKeyGroup,
+    handleSaveKeyGroups,
+    handleCancelKeyGroups,
     startEditUrl,
     handleSaveKey,
     handleCancelEdit,

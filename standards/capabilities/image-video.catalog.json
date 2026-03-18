@@ -1,5 +1,198 @@
 [
   {
+    "modelType": "audio",
+    "provider": "yescale",
+    "modelId": "gemini-2.5-flash-preview-tts",
+    "capabilities": {
+      "audio": {
+        "voiceOptions": [
+          "Kore",
+          "Puck",
+          "Fenrir",
+          "Aoede",
+          "Leda",
+          "Orus",
+          "Zephyr"
+        ],
+        "fieldI18n": {
+          "voice": {
+            "labelKey": "capability.voice"
+          }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "audio",
+    "provider": "yescale",
+    "modelId": "gemini-2.5-pro-preview-tts",
+    "capabilities": {
+      "audio": {
+        "voiceOptions": [
+          "Kore",
+          "Puck",
+          "Fenrir",
+          "Aoede",
+          "Leda",
+          "Orus",
+          "Zephyr"
+        ],
+        "fieldI18n": {
+          "voice": {
+            "labelKey": "capability.voice"
+          }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "audio",
+    "provider": "yescale",
+    "modelId": "gpt-4o-mini-tts",
+    "capabilities": {
+      "audio": {
+        "voiceOptions": [
+          "alloy",
+          "ash",
+          "ballad",
+          "coral",
+          "echo",
+          "sage",
+          "shimmer",
+          "verse"
+        ],
+        "rateOptions": [
+          "+0%",
+          "+20%",
+          "+50%",
+          "+100%"
+        ],
+        "fieldI18n": {
+          "voice": {
+            "labelKey": "capability.voice",
+            "optionLabelKeys": {
+              "alloy": "capabilityOption.voice.alloy",
+              "ash": "capabilityOption.voice.ash",
+              "ballad": "capabilityOption.voice.ballad",
+              "coral": "capabilityOption.voice.coral",
+              "echo": "capabilityOption.voice.echo",
+              "sage": "capabilityOption.voice.sage",
+              "shimmer": "capabilityOption.voice.shimmer",
+              "verse": "capabilityOption.voice.verse"
+            }
+          },
+          "rate": {
+            "labelKey": "capability.rate",
+            "optionLabelKeys": {
+              "+0%": "capabilityOption.rate.normal",
+              "+20%": "capabilityOption.rate.plus20",
+              "+50%": "capabilityOption.rate.plus50",
+              "+100%": "capabilityOption.rate.plus100"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "audio",
+    "provider": "yescale",
+    "modelId": "tts-1",
+    "capabilities": {
+      "audio": {
+        "voiceOptions": [
+          "alloy",
+          "ash",
+          "ballad",
+          "coral",
+          "echo",
+          "sage",
+          "shimmer",
+          "verse"
+        ],
+        "rateOptions": [
+          "+0%",
+          "+20%",
+          "+50%",
+          "+100%"
+        ],
+        "fieldI18n": {
+          "voice": {
+            "labelKey": "capability.voice",
+            "optionLabelKeys": {
+              "alloy": "capabilityOption.voice.alloy",
+              "ash": "capabilityOption.voice.ash",
+              "ballad": "capabilityOption.voice.ballad",
+              "coral": "capabilityOption.voice.coral",
+              "echo": "capabilityOption.voice.echo",
+              "sage": "capabilityOption.voice.sage",
+              "shimmer": "capabilityOption.voice.shimmer",
+              "verse": "capabilityOption.voice.verse"
+            }
+          },
+          "rate": {
+            "labelKey": "capability.rate",
+            "optionLabelKeys": {
+              "+0%": "capabilityOption.rate.normal",
+              "+20%": "capabilityOption.rate.plus20",
+              "+50%": "capabilityOption.rate.plus50",
+              "+100%": "capabilityOption.rate.plus100"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "audio",
+    "provider": "yescale",
+    "modelId": "tts-1-hd",
+    "capabilities": {
+      "audio": {
+        "voiceOptions": [
+          "alloy",
+          "ash",
+          "ballad",
+          "coral",
+          "echo",
+          "sage",
+          "shimmer",
+          "verse"
+        ],
+        "rateOptions": [
+          "+0%",
+          "+20%",
+          "+50%",
+          "+100%"
+        ],
+        "fieldI18n": {
+          "voice": {
+            "labelKey": "capability.voice",
+            "optionLabelKeys": {
+              "alloy": "capabilityOption.voice.alloy",
+              "ash": "capabilityOption.voice.ash",
+              "ballad": "capabilityOption.voice.ballad",
+              "coral": "capabilityOption.voice.coral",
+              "echo": "capabilityOption.voice.echo",
+              "sage": "capabilityOption.voice.sage",
+              "shimmer": "capabilityOption.voice.shimmer",
+              "verse": "capabilityOption.voice.verse"
+            }
+          },
+          "rate": {
+            "labelKey": "capability.rate",
+            "optionLabelKeys": {
+              "+0%": "capabilityOption.rate.normal",
+              "+20%": "capabilityOption.rate.plus20",
+              "+50%": "capabilityOption.rate.plus50",
+              "+100%": "capabilityOption.rate.plus100"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
     "modelType": "image",
     "provider": "fal",
     "modelId": "banana-2",
@@ -1044,6 +1237,183 @@
           "1080p"
         ],
         "firstlastframe": true,
+        "supportGenerateAudio": false
+      }
+    }
+  },
+  {
+    "modelType": "image",
+    "provider": "yescale",
+    "modelId": "nano-banana-2",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "google_searchOptions": [
+          "disable",
+          "webSearch",
+          "imageSearch",
+          "both"
+        ],
+        "thinkingOptions": [
+          "minimal",
+          "high"
+        ],
+        "fieldI18n": {
+          "resolution": {
+            "labelKey": "capability.resolution"
+          },
+          "google_search": {
+            "labelKey": "capability.google_search",
+            "optionLabelKeys": {
+              "disable": "capabilityOption.google_search.disable",
+              "webSearch": "capabilityOption.google_search.webSearch",
+              "imageSearch": "capabilityOption.google_search.imageSearch",
+              "both": "capabilityOption.google_search.both"
+            }
+          },
+          "thinking": {
+            "labelKey": "capability.thinking",
+            "optionLabelKeys": {
+              "minimal": "capabilityOption.thinking.minimal",
+              "high": "capabilityOption.thinking.high"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "image",
+    "provider": "yescale",
+    "modelId": "nano-banana-pro",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    }
+  },
+  {
+    "modelType": "image",
+    "provider": "yescale",
+    "modelId": "seedream-4.0",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    }
+  },
+  {
+    "modelType": "image",
+    "provider": "yescale",
+    "modelId": "seedream-4.5",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    }
+  },
+  {
+    "modelType": "image",
+    "provider": "yescale",
+    "modelId": "gpt-image",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": [
+          "1024x1024",
+          "1536x1024",
+          "1024x1536"
+        ]
+      }
+    }
+  },
+  {
+    "modelType": "video",
+    "provider": "yescale",
+    "modelId": "veo-3.1",
+    "capabilities": {
+      "video": {
+        "generationModeOptions": [
+          "normal",
+          "firstlastframe"
+        ],
+        "durationOptions": [
+          5,
+          8
+        ],
+        "resolutionOptions": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "firstlastframe": true,
+        "supportGenerateAudio": false
+      }
+    }
+  },
+  {
+    "modelType": "video",
+    "provider": "yescale",
+    "modelId": "kling-2.5-turbo",
+    "capabilities": {
+      "video": {
+        "generationModeOptions": [
+          "normal"
+        ],
+        "durationOptions": [
+          5,
+          10
+        ],
+        "resolutionOptions": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "firstlastframe": false,
+        "supportGenerateAudio": false
+      }
+    }
+  },
+  {
+    "modelType": "video",
+    "provider": "yescale",
+    "modelId": "hailuo-2.3",
+    "capabilities": {
+      "video": {
+        "generationModeOptions": [
+          "normal"
+        ],
+        "durationOptions": [
+          6,
+          10
+        ],
+        "resolutionOptions": [
+          "720P",
+          "1080P"
+        ],
+        "firstlastframe": false,
         "supportGenerateAudio": false
       }
     }

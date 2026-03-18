@@ -68,4 +68,90 @@ describe('api specific - user models audio filter', () => {
       'bailian::qwen3-tts-vd-2026-01-26',
     ])
   })
+
+  it('includes models for providers configured only with api key groups', async () => {
+    prismaMock.userPreference.findUnique.mockResolvedValueOnce({
+      customModels: JSON.stringify([
+        {
+          modelId: 'gpt-5-mini',
+          modelKey: 'yescale::gpt-5-mini',
+          name: 'GPT-5 mini',
+          type: 'llm',
+          provider: 'yescale',
+        },
+      ]),
+      customProviders: JSON.stringify([
+        {
+          id: 'yescale',
+          name: 'YEScale',
+          apiKeyGroups: {
+            openai: 'k-yescale-openai',
+          },
+        },
+      ]),
+    })
+
+    const mod = await import('@/app/api/user/models/route')
+    const req = buildMockRequest({
+      path: '/api/user/models',
+      method: 'GET',
+    })
+    const res = await mod.GET(req, routeContext)
+
+    expect(res.status).toBe(200)
+    const body = await res.json() as { llm: Array<{ value: string; label: string; provider: string; providerName: string }> }
+    expect(body.llm).toEqual([
+      {
+        value: 'yescale::gpt-5-mini',
+        label: 'GPT-5 mini',
+        provider: 'yescale',
+        providerName: 'YEScale',
+      },
+    ])
+  })
+
+  it('returns only active models', async () => {
+    prismaMock.userPreference.findUnique.mockResolvedValueOnce({
+      customModels: JSON.stringify([
+        {
+          modelId: 'gpt-5-mini',
+          modelKey: 'yescale::gpt-5-mini',
+          name: 'GPT-5 mini',
+          type: 'llm',
+          provider: 'yescale',
+          enabled: true,
+        },
+        {
+          modelId: 'gpt-5',
+          modelKey: 'yescale::gpt-5',
+          name: 'GPT-5',
+          type: 'llm',
+          provider: 'yescale',
+          enabled: false,
+        },
+      ]),
+      customProviders: JSON.stringify([
+        {
+          id: 'yescale',
+          name: 'YEScale',
+          apiKeyGroups: {
+            openai: 'k-yescale-openai',
+          },
+        },
+      ]),
+    })
+
+    const mod = await import('@/app/api/user/models/route')
+    const req = buildMockRequest({
+      path: '/api/user/models',
+      method: 'GET',
+    })
+    const res = await mod.GET(req, routeContext)
+
+    expect(res.status).toBe(200)
+    const body = await res.json() as { llm: Array<{ value: string }> }
+    expect(body.llm.map((item) => item.value)).toEqual([
+      'yescale::gpt-5-mini',
+    ])
+  })
 })

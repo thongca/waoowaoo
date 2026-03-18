@@ -63,7 +63,6 @@ export async function generateImage(
 ): Promise<GenerateResult> {
     const selection = await resolveModelSelection(userId, modelKey, 'image')
     _ulogInfo(`[generateImage] resolved model selection: ${selection.modelKey}`)
-    const providerConfig = await getProviderConfig(userId, selection.provider)
     const providerKey = getProviderKey(selection.provider).toLowerCase()
     if (providerKey === 'bailian') {
         return await generateBailianImage({
@@ -91,6 +90,22 @@ export async function generateImage(
             },
         })
     }
+    if (providerKey === 'yescale') {
+        const { referenceImages, ...generatorOptions } = options || {}
+        const generator = createImageGenerator(selection.provider, selection.modelId)
+        return await generator.generate({
+            userId,
+            prompt,
+            referenceImages,
+            options: {
+                ...generatorOptions,
+                provider: selection.provider,
+                modelId: selection.modelId,
+                modelKey: selection.modelKey,
+            },
+        })
+    }
+    const providerConfig = await getProviderConfig(userId, selection.provider, { modelId: selection.modelId })
     const defaultGatewayRoute = resolveModelGatewayRoute(selection.provider)
     let gatewayRoute = OFFICIAL_ONLY_PROVIDER_KEYS.has(providerKey)
         ? 'official'
@@ -220,7 +235,22 @@ export async function generateVideo(
             },
         })
     }
-    const providerConfig = await getProviderConfig(userId, selection.provider)
+    if (providerKey === 'yescale') {
+        const { prompt, ...providerOptions } = options || {}
+        const generator = createVideoGenerator(selection.provider)
+        return await generator.generate({
+            userId,
+            imageUrl,
+            prompt,
+            options: {
+                ...providerOptions,
+                provider: selection.provider,
+                modelId: selection.modelId,
+                modelKey: selection.modelKey,
+            },
+        })
+    }
+    const providerConfig = await getProviderConfig(userId, selection.provider, { modelId: selection.modelId })
     const defaultGatewayRoute = resolveModelGatewayRoute(selection.provider)
     const gatewayRoute = OFFICIAL_ONLY_PROVIDER_KEYS.has(providerKey)
         ? 'official'
@@ -292,6 +322,7 @@ export async function generateAudio(
     options?: {
         voice?: string
         rate?: number
+        speakerName?: string
     }
 ): Promise<GenerateResult> {
     const selection = await resolveModelSelection(userId, modelKey, 'audio')
@@ -330,6 +361,7 @@ export async function generateAudio(
         voice: options?.voice,
         rate: options?.rate,
         options: {
+            ...(options?.speakerName ? { speakerName: options.speakerName } : {}),
             provider: selection.provider,
             modelId: selection.modelId,
             modelKey: selection.modelKey,

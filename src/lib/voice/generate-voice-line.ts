@@ -1,5 +1,7 @@
 import { logInfo as _ulogInfo } from '@/lib/logging/core'
 import { fal } from '@fal-ai/client'
+import { resolveProjectModelCapabilityGenerationOptions } from '@/lib/config-service'
+import { generateAudio } from '@/lib/generator-api'
 import { prisma } from '@/lib/prisma'
 import { getAudioApiKey, getProviderConfig, getProviderKey, resolveModelSelectionOrSingle } from '@/lib/api-config'
 import { normalizeToBase64ForGeneration } from '@/lib/media/outbound-image'
@@ -15,6 +17,33 @@ import {
 
 type CheckCancelled = () => Promise<void>
 type CharacterVoiceProfile = CharacterVoiceFields & { name: string }
+
+function readTrimmedString(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function parseVoiceRate(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value
+  }
+
+  const normalized = readTrimmedString(value)
+  if (!normalized) return undefined
+
+  const percentMatch = /^([+-]?\d+(?:\.\d+)?)%$/.exec(normalized)
+  if (percentMatch) {
+    const delta = Number.parseFloat(percentMatch[1])
+    if (Number.isFinite(delta)) {
+      const speed = 1 + delta / 100
+      return speed > 0 ? speed : undefined
+    }
+  }
+
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
 
 function normalizeBailianVoiceGenerationError(errorMessage: string | null | undefined) {
   const message = typeof errorMessage === 'string' ? errorMessage.trim() : ''
@@ -157,6 +186,17 @@ async function downloadAudioData(audioUrl: string): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer())
 }
 
+function resolveYescaleVoice(input: {
+  character?: CharacterVoiceFields | null
+  speakerVoice?: SpeakerVoiceMap[string] | null
+  capabilityVoice?: unknown
+}): string {
+  return readTrimmedString(input.character?.voiceId)
+    || (input.speakerVoice?.provider !== 'fal' ? readTrimmedString(input.speakerVoice?.voiceId) : null)
+    || readTrimmedString(input.capabilityVoice)
+    || 'alloy'
+}
+
 export async function generateVoiceLine(params: {
   projectId: string
   episodeId?: string | null
@@ -214,6 +254,19 @@ export async function generateVoiceLine(params: {
 
   const audioSelection = await resolveModelSelectionOrSingle(params.userId, params.audioModel, 'audio')
   const providerKey = getProviderKey(audioSelection.provider).toLowerCase()
+  let capabilityOptions: Record<string, string | number | boolean> = {}
+  if (providerKey === 'yescale') {
+    try {
+      capabilityOptions = await resolveProjectModelCapabilityGenerationOptions({
+        projectId: params.projectId,
+        userId: params.userId,
+        modelType: 'audio',
+        modelKey: audioSelection.modelKey,
+      })
+    } catch {
+      capabilityOptions = {}
+    }
+  }
   const voiceBinding = resolveVoiceBindingForProvider({
     providerKey,
     character,
@@ -260,6 +313,25 @@ export async function generateVoiceLine(params: {
     generated = {
       audioData,
       audioDuration: result.audioDuration ?? getWavDurationFromBuffer(audioData),
+    }
+  } else if (providerKey === 'yescale') {
+    const result = await generateAudio(params.userId, audioSelection.modelKey, text, {
+      voice: resolveYescaleVoice({
+        character,
+        speakerVoice,
+        capabilityVoice: capabilityOptions.voice,
+      }),
+      rate: parseVoiceRate(capabilityOptions.rate ?? projectData.ttsRate),
+      speakerName: line.speaker,
+    })
+    if (!result.success || !result.audioUrl) {
+      throw new Error(result.error || 'YESCALE_AUDIO_GENERATION_FAILED')
+    }
+
+    const audioData = await downloadAudioData(result.audioUrl)
+    generated = {
+      audioData,
+      audioDuration: getWavDurationFromBuffer(audioData),
     }
   } else {
     throw new Error(`AUDIO_PROVIDER_UNSUPPORTED: ${audioSelection.provider}`)

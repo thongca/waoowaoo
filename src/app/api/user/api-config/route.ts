@@ -19,6 +19,7 @@ import {
 } from '@/lib/model-config-contract'
 import {
   getCapabilityOptionFields,
+  normalizeCapabilitySelectionForModel,
   resolveBuiltinModelContext,
   validateCapabilitySelectionsPayload,
 } from '@/lib/model-capabilities/lookup'
@@ -42,6 +43,17 @@ import type {
 } from '@/lib/openai-compat-media-template'
 import { validateOpenAICompatMediaTemplate } from '@/lib/user-api/model-template/validator'
 
+const YESCALE_KEY_GROUPS = new Set([
+  'normal',
+  'openai',
+  'premium',
+  'deepseek',
+  'gemini',
+  'gemini-op',
+  'drawing',
+  'video',
+])
+
 type ApiModeType = 'gemini-sdk' | 'openai-official'
 type GatewayRouteType = 'official' | 'openai-compat'
 type LlmProtocolType = 'responses' | 'chat-completions'
@@ -61,6 +73,7 @@ interface StoredProvider {
   name: string
   baseUrl?: string
   apiKey?: string
+  apiKeyGroups?: Record<string, string>
   hidden?: boolean
   apiMode?: ApiModeType
   gatewayRoute?: GatewayRouteType
@@ -88,6 +101,8 @@ interface StoredModel {
   name: string
   type: UnifiedModelType
   provider: string
+  enabled?: boolean
+  keyGroup?: string
   llmProtocol?: LlmProtocolType
   llmProtocolCheckedAt?: string
   compatMediaTemplate?: OpenAICompatMediaTemplate
@@ -188,6 +203,7 @@ const PRICING_PROVIDER_ALIASES: Readonly<Record<string, string>> = {
 const OPTIONAL_PRICING_PROVIDER_KEYS = new Set([
   'openai-compatible',
   'gemini-compatible',
+  'yescale',
   'bailian',
   'siliconflow',
 ])
@@ -465,6 +481,55 @@ function isMediaTemplateSource(value: unknown): value is OpenAICompatMediaTempla
   return value === 'ai' || value === 'manual'
 }
 
+function isYeScaleKeyGroup(value: unknown): value is string {
+  return typeof value === 'string' && YESCALE_KEY_GROUPS.has(value.trim())
+}
+
+function normalizeApiKeyGroups(
+  raw: unknown,
+  options: { strict: boolean; field: string; providerId: string },
+): Record<string, string> | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!isRecord(raw)) {
+    if (options.strict) {
+      throw new ApiError('INVALID_PARAMS', {
+        code: 'PROVIDER_PAYLOAD_INVALID',
+        field: options.field,
+      })
+    }
+    return undefined
+  }
+
+  if (getProviderKey(options.providerId) !== 'yescale') {
+    if (options.strict) {
+      throw new ApiError('INVALID_PARAMS', {
+        code: 'PROVIDER_PAYLOAD_INVALID',
+        field: options.field,
+      })
+    }
+    return undefined
+  }
+
+  const normalized: Record<string, string> = {}
+  for (const [groupKey, rawValue] of Object.entries(raw)) {
+    if (!YESCALE_KEY_GROUPS.has(groupKey)) {
+      throw new ApiError('INVALID_PARAMS', {
+        code: 'PROVIDER_PAYLOAD_INVALID',
+        field: `${options.field}.${groupKey}`,
+      })
+    }
+    if (typeof rawValue !== 'string') {
+      throw new ApiError('INVALID_PARAMS', {
+        code: 'PROVIDER_PAYLOAD_INVALID',
+        field: `${options.field}.${groupKey}`,
+      })
+    }
+    normalized[groupKey] = rawValue.trim()
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined
+}
+
 function resolveProviderGatewayRoute(
   providerId: string,
   rawGatewayRoute: unknown,
@@ -472,6 +537,7 @@ function resolveProviderGatewayRoute(
   const providerKey = getProviderKey(providerId)
   const isOpenAICompatibleProvider = providerKey === 'openai-compatible'
   const isGeminiCompatibleProvider = providerKey === 'gemini-compatible'
+  const isYeScaleProvider = providerKey === 'yescale'
 
   if (rawGatewayRoute !== undefined && !isGatewayRoute(rawGatewayRoute)) {
     throw new ApiError('INVALID_PARAMS', {
@@ -495,6 +561,15 @@ function resolveProviderGatewayRoute(
       })
     }
     return 'official'
+  }
+
+  if (isYeScaleProvider) {
+    if (rawGatewayRoute === 'official') {
+      throw new ApiError('INVALID_PARAMS', {
+        code: 'PROVIDER_GATEWAY_ROUTE_INVALID',
+      })
+    }
+    return 'openai-compat'
   }
 
   if (OFFICIAL_ONLY_PROVIDER_KEYS.has(providerKey)) {
@@ -771,6 +846,13 @@ function normalizeStoredModel(raw: unknown, index: number, options?: { strictCus
   }
 
   const modelName = readTrimmedString(raw.name) || modelId
+  const enabledRaw = raw.enabled
+  if (enabledRaw !== undefined && typeof enabledRaw !== 'boolean') {
+    throw new ApiError('INVALID_PARAMS', {
+      code: 'MODEL_PAYLOAD_INVALID',
+      field: `models[${index}].enabled`,
+    })
+  }
 
   const customPricing = normalizeCustomPricing(raw.customPricing, {
     strict: options?.strictCustomPricing,
@@ -815,12 +897,28 @@ function normalizeStoredModel(raw: unknown, index: number, options?: { strictCus
     compatMediaTemplateSource = compatMediaTemplateSourceRaw
   }
 
+  const keyGroupRaw = readTrimmedString(raw.keyGroup)
+  if (keyGroupRaw && getProviderKey(provider) === 'yescale' && !isYeScaleKeyGroup(keyGroupRaw)) {
+    throw new ApiError('INVALID_PARAMS', {
+      code: 'MODEL_PAYLOAD_INVALID',
+      field: `models[${index}].keyGroup`,
+    })
+  }
+  if (keyGroupRaw && getProviderKey(provider) !== 'yescale') {
+    throw new ApiError('INVALID_PARAMS', {
+      code: 'MODEL_PAYLOAD_INVALID',
+      field: `models[${index}].keyGroup`,
+    })
+  }
+
   return {
     modelId,
     modelKey,
     name: modelName,
     type: modelType,
     provider,
+    enabled: enabledRaw !== false,
+    ...(keyGroupRaw ? { keyGroup: keyGroupRaw } : {}),
     ...(llmProtocol ? { llmProtocol } : {}),
     ...(llmProtocolCheckedAt ? { llmProtocolCheckedAt } : {}),
     ...(compatMediaTemplate ? { compatMediaTemplate } : {}),
@@ -916,6 +1014,11 @@ function normalizeProvidersInput(rawProviders: unknown): StoredProvider[] {
       name,
       baseUrl,
       apiKey: typeof item.apiKey === 'string' ? item.apiKey.trim() : undefined,
+      apiKeyGroups: normalizeApiKeyGroups(item.apiKeyGroups, {
+        strict: true,
+        field: `providers[${index}].apiKeyGroups`,
+        providerId: id,
+      }),
       hidden: hiddenRaw === true,
       apiMode: apiModeRaw,
       gatewayRoute,
@@ -1473,6 +1576,11 @@ function parseStoredProviders(rawProviders: string | null | undefined): StoredPr
       name,
       baseUrl,
       apiKey: typeof raw.apiKey === 'string' ? raw.apiKey.trim() : undefined,
+      apiKeyGroups: normalizeApiKeyGroups(raw.apiKeyGroups, {
+        strict: false,
+        field: `customProviders[${index}].apiKeyGroups`,
+        providerId: id,
+      }),
       hidden: hiddenRaw === true,
       apiMode,
       gatewayRoute,
@@ -1612,9 +1720,15 @@ function sanitizeCapabilitySelectionsAgainstModels(
 
     const optionFields = getCapabilityOptionFields(context.modelType, context.capabilities)
     if (Object.keys(optionFields).length === 0) continue
+    const normalizedSelection = normalizeCapabilitySelectionForModel({
+      modelKey,
+      modelType: context.modelType,
+      capabilities: context.capabilities,
+      selection,
+    })
 
     const cleanedSelection: Record<string, string | number | boolean> = {}
-    for (const [field, value] of Object.entries(selection)) {
+    for (const [field, value] of Object.entries(normalizedSelection)) {
       const allowedValues = optionFields[field]
       if (!allowedValues) continue
       if (!allowedValues.includes(value)) continue
@@ -1679,6 +1793,11 @@ export const GET = apiHandler(async () => {
   const providers = parseStoredProviders(pref?.customProviders).map((provider) => ({
     ...provider,
     apiKey: provider.apiKey ? decryptApiKey(provider.apiKey) : '',
+    apiKeyGroups: provider.apiKeyGroups
+      ? Object.fromEntries(
+        Object.entries(provider.apiKeyGroups).map(([groupKey, value]) => [groupKey, value ? decryptApiKey(value) : '']),
+      )
+      : undefined,
   }))
 
   const billingMode = await getBillingMode()
@@ -1705,6 +1824,33 @@ export const GET = apiHandler(async () => {
     { type: 'video', modelId: 'veo-3.0-fast-generate-001', name: 'Veo 3.0 Fast' },
     { type: 'video', modelId: 'veo-2.0-generate-001', name: 'Veo 2.0' },
   ]
+  const YESCALE_PRESETS: { type: UnifiedModelType; modelId: string; name: string }[] = [
+    { type: 'llm', modelId: 'gpt-4o', name: 'GPT-4o' },
+    { type: 'llm', modelId: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+    { type: 'llm', modelId: 'gpt-4.1', name: 'GPT-4.1' },
+    { type: 'llm', modelId: 'gpt-4.1-mini', name: 'GPT-4.1 Mini' },
+    { type: 'llm', modelId: 'gpt-4.1-nano', name: 'GPT-4.1 Nano' },
+    { type: 'llm', modelId: 'gpt-5', name: 'GPT-5' },
+    { type: 'llm', modelId: 'gpt-5-chat-latest', name: 'GPT-5 Chat' },
+    { type: 'llm', modelId: 'gpt-5-mini', name: 'GPT-5 Mini' },
+    { type: 'llm', modelId: 'gpt-5-nano', name: 'GPT-5 Nano' },
+    { type: 'llm', modelId: 'claude-sonnet-4', name: 'Claude Sonnet 4' },
+    { type: 'llm', modelId: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+    { type: 'llm', modelId: 'deepseek-chat', name: 'DeepSeek Chat' },
+    { type: 'audio', modelId: 'gemini-2.5-flash-preview-tts', name: 'Gemini 2.5 Flash Preview TTS' },
+    { type: 'audio', modelId: 'gemini-2.5-pro-preview-tts', name: 'Gemini 2.5 Pro Preview TTS' },
+    { type: 'audio', modelId: 'gpt-4o-mini-tts', name: 'GPT-4o Mini TTS' },
+    { type: 'audio', modelId: 'tts-1', name: 'TTS 1' },
+    { type: 'audio', modelId: 'tts-1-hd', name: 'TTS 1 HD' },
+    { type: 'image', modelId: 'nano-banana-2', name: 'Nano Banana 2' },
+    { type: 'image', modelId: 'nano-banana-pro', name: 'Nano Banana Pro' },
+    { type: 'image', modelId: 'seedream-4.0', name: 'Seedream 4.0' },
+    { type: 'image', modelId: 'seedream-4.5', name: 'Seedream 4.5' },
+    { type: 'image', modelId: 'gpt-image', name: 'GPT Image' },
+    { type: 'video', modelId: 'veo-3.1', name: 'Veo 3.1' },
+    { type: 'video', modelId: 'kling-2.5-turbo', name: 'Kling 2.5 Turbo' },
+    { type: 'video', modelId: 'hailuo-2.3', name: 'Hailuo 2.3' },
+  ]
   const savedModelKeys = new Set(pricedModels.map((m) => m.modelKey))
   const disabledPresets: (StoredModel & { enabled: false })[] = []
   for (const p of providers) {
@@ -1721,6 +1867,24 @@ export const GET = apiHandler(async () => {
         provider: p.id,
         price: 0,
         // alias 回退自动从 google catalog 获取 capabilities
+        capabilities: findBuiltinCapabilities(preset.type, p.id, preset.modelId),
+      }
+      disabledPresets.push({ ...withDisplayPricing(base, pricingDisplay), enabled: false })
+    }
+  }
+  for (const p of providers) {
+    if (getProviderKey(p.id) !== 'yescale') continue
+    for (const preset of YESCALE_PRESETS) {
+      const modelKey = composeModelKey(p.id, preset.modelId)
+      if (!modelKey || savedModelKeys.has(modelKey)) continue
+      savedModelKeys.add(modelKey)
+      const base: StoredModel = {
+        modelId: preset.modelId,
+        modelKey,
+        name: preset.name,
+        type: preset.type,
+        provider: p.id,
+        price: 0,
         capabilities: findBuiltinCapabilities(preset.type, p.id, preset.modelId),
       }
       disabledPresets.push({ ...withDisplayPricing(base, pricingDisplay), enabled: false })
@@ -1819,12 +1983,25 @@ export const PUT = apiHandler(async (request: NextRequest) => {
     const providersToSave = normalizedProviders.map((provider) => {
       const existing = existingProviders.find((candidate) => candidate.id === provider.id)
       let finalApiKey: string | undefined
+      let finalApiKeyGroups: Record<string, string> | undefined
       if (provider.apiKey === undefined) {
         finalApiKey = existing?.apiKey
       } else if (provider.apiKey === '') {
         finalApiKey = undefined
       } else {
         finalApiKey = encryptApiKey(provider.apiKey)
+      }
+      if (provider.apiKeyGroups === undefined) {
+        finalApiKeyGroups = existing?.apiKeyGroups
+      } else {
+        finalApiKeyGroups = Object.fromEntries(
+          Object.entries(provider.apiKeyGroups)
+            .filter(([, value]) => value !== '')
+            .map(([groupKey, value]) => [groupKey, encryptApiKey(value)]),
+        )
+        if (Object.keys(finalApiKeyGroups).length === 0) {
+          finalApiKeyGroups = undefined
+        }
       }
       const finalHidden = provider.hidden === undefined
         ? existing?.hidden === true
@@ -1838,6 +2015,7 @@ export const PUT = apiHandler(async (request: NextRequest) => {
         apiMode: provider.apiMode,
         gatewayRoute: provider.gatewayRoute,
         apiKey: finalApiKey,
+        ...(finalApiKeyGroups ? { apiKeyGroups: finalApiKeyGroups } : {}),
       }
     })
     updateData.customProviders = JSON.stringify(providersToSave)

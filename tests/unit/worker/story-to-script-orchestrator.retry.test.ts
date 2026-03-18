@@ -278,4 +278,54 @@ describe('story-to-script orchestrator retry', () => {
     expect(result.summary.screenplaySuccessCount).toBe(3)
     expect(maxActiveScreenplay).toBe(1)
   })
+
+  it('ignores trailing reference-only clip when earlier clips already cover the source text', async () => {
+    const runStep = vi.fn(async (_meta, _prompt, action: string) => {
+      if (action === 'analyze_characters') {
+        return { text: JSON.stringify({ characters: [{ name: 'Shop Owner', introduction: 'owner' }] }), reasoning: '' }
+      }
+      if (action === 'analyze_locations') {
+        return { text: JSON.stringify({ locations: [{ name: 'Main Entrance' }] }), reasoning: '' }
+      }
+      if (action === 'split_clips') {
+        return {
+          text: JSON.stringify([
+            {
+              start: 'CẢNH 1',
+              end: 'kết thúc.',
+              summary: 'story clip',
+              location: 'Main Entrance',
+              characters: ['Shop Owner'],
+            },
+            {
+              start: 'Location library:',
+              end: 'owner',
+              summary: 'reference clip',
+              location: 'Main Entrance',
+              characters: ['Shop Owner'],
+            },
+          ]),
+          reasoning: '',
+        }
+      }
+      return { text: JSON.stringify({ scenes: [{ scene_number: 1 }] }), reasoning: '' }
+    })
+
+    const result = await runStoryToScriptOrchestrator({
+      content: 'CẢNH 1 mở đầu. nội dung diễn ra. kết thúc.',
+      baseCharacters: [],
+      baseLocations: [],
+      baseCharacterIntroductions: [],
+      promptTemplates: {
+        characterPromptTemplate: '{input} {characters_lib_name} {characters_lib_info}',
+        locationPromptTemplate: '{input} {locations_lib_name}',
+        clipPromptTemplate: '{input} {locations_lib_name} {characters_lib_name} {characters_introduction}',
+        screenplayPromptTemplate: '{clip_content} {locations_lib_name} {characters_lib_name} {characters_introduction} {clip_id}',
+      },
+      runStep,
+    })
+
+    expect(result.summary.clipCount).toBe(1)
+    expect(result.clipList[0]?.content).toBe('CẢNH 1 mở đầu. nội dung diễn ra. kết thúc.')
+  })
 })

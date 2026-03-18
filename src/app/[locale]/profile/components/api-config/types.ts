@@ -18,10 +18,98 @@ export interface Provider {
     name: string
     baseUrl?: string
     apiKey?: string
+    apiKeyGroups?: Record<string, string>
     hasApiKey?: boolean
     hidden?: boolean
     apiMode?: 'gemini-sdk' | 'openai-official'
     gatewayRoute?: 'official' | 'openai-compat'
+}
+
+export interface YeScaleKeyGroupDefinition {
+    desc: string
+    ratio: number
+}
+
+export const YESCALE_KEY_GROUPS = {
+    normal: {
+        desc: 'Normal(1x) - For OpenAI, Gemini, Deepseek, Grok',
+        ratio: 1,
+    },
+    openai: {
+        desc: 'OpenAI(1x), For Normal OpenAI Models',
+        ratio: 1,
+    },
+    premium: {
+        desc: 'Premium(2x) - For High Quality Claude',
+        ratio: 2,
+    },
+    deepseek: {
+        desc: 'Deepseek(1x), For All Deepseek',
+        ratio: 1,
+    },
+    gemini: {
+        desc: 'Gemini(1x), For All Gemini Models',
+        ratio: 1,
+    },
+    'gemini-op': {
+        desc: 'GeminiOP(1x), Official Gemini Endpoint',
+        ratio: 1,
+    },
+    drawing: {
+        desc: 'Drawing(1.25x) - For Drawing Models',
+        ratio: 1.25,
+    },
+    video: {
+        desc: 'Video(1.25x) - For Video Models',
+        ratio: 1.25,
+    },
+} satisfies Record<string, YeScaleKeyGroupDefinition>
+
+export type YeScaleKeyGroup = keyof typeof YESCALE_KEY_GROUPS
+
+export const YESCALE_KEY_GROUP_ORDER: YeScaleKeyGroup[] = [
+    'openai',
+    'premium',
+    'gemini',
+    'gemini-op',
+    'deepseek',
+    'normal',
+    'drawing',
+    'video',
+]
+
+export const YESCALE_MODEL_GROUP_DEFAULTS: Record<string, YeScaleKeyGroup> = {
+    'gpt-4o': 'openai',
+    'gpt-4o-mini': 'openai',
+    'gpt-4.1': 'openai',
+    'gpt-4.1-mini': 'openai',
+    'gpt-4.1-nano': 'openai',
+    'gpt-5': 'openai',
+    'gpt-5-chat-latest': 'openai',
+    'gpt-5-mini': 'openai',
+    'gpt-5-nano': 'openai',
+    'claude-sonnet-4': 'premium',
+    'gemini-2.5-flash': 'gemini',
+    'deepseek-chat': 'deepseek',
+    'gemini-2.5-flash-preview-tts': 'gemini-op',
+    'gemini-2.5-pro-preview-tts': 'gemini-op',
+    'gpt-4o-mini-tts': 'openai',
+    'tts-1': 'openai',
+    'tts-1-hd': 'openai',
+    'nano-banana-2': 'drawing',
+    'nano-banana-pro': 'drawing',
+    'seedream-4.0': 'drawing',
+    'seedream-4.5': 'drawing',
+    'gpt-image': 'drawing',
+    'veo-3.1': 'video',
+    'kling-2.5-turbo': 'video',
+    'hailuo-2.3': 'video',
+}
+
+export function hasProviderApiKey(provider: Pick<Provider, 'apiKey' | 'apiKeyGroups'>): boolean {
+    if (typeof provider.apiKey === 'string' && provider.apiKey.trim().length > 0) return true
+    if (!provider.apiKeyGroups) return false
+    return Object.values(provider.apiKeyGroups).some((value) => typeof value === 'string' && value.trim().length > 0)
 }
 
 export interface LlmCustomPricing {
@@ -53,6 +141,7 @@ export interface CustomModel {
     compatMediaTemplate?: OpenAICompatMediaTemplate
     compatMediaTemplateCheckedAt?: string
     compatMediaTemplateSource?: OpenAICompatMediaTemplateSource
+    keyGroup?: YeScaleKeyGroup
     price: number
     priceMin?: number
     priceMax?: number
@@ -118,6 +207,24 @@ export const PRESET_MODELS: PresetModel[] = [
     { modelId: 'MiniMax-M2.1', name: 'MiniMax M2.1', type: 'llm', provider: 'minimax' },
     { modelId: 'MiniMax-M2.1-highspeed', name: 'MiniMax M2.1 Highspeed', type: 'llm', provider: 'minimax' },
     { modelId: 'MiniMax-M2', name: 'MiniMax M2', type: 'llm', provider: 'minimax' },
+    { modelId: 'gpt-4o', name: 'GPT-4o', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-4o-mini', name: 'GPT-4o Mini', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-4.1', name: 'GPT-4.1', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-5', name: 'GPT-5', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-5-chat-latest', name: 'GPT-5 Chat', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-5-mini', name: 'GPT-5 Mini', type: 'llm', provider: 'yescale' },
+    { modelId: 'gpt-5-nano', name: 'GPT-5 Nano', type: 'llm', provider: 'yescale' },
+    { modelId: 'claude-sonnet-4', name: 'Claude Sonnet 4', type: 'llm', provider: 'yescale' },
+    { modelId: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', type: 'llm', provider: 'yescale' },
+    { modelId: 'deepseek-chat', name: 'DeepSeek Chat', type: 'llm', provider: 'yescale' },
+
+    { modelId: 'gemini-2.5-flash-preview-tts', name: 'Gemini 2.5 Flash Preview TTS', type: 'audio', provider: 'yescale' },
+    { modelId: 'gemini-2.5-pro-preview-tts', name: 'Gemini 2.5 Pro Preview TTS', type: 'audio', provider: 'yescale' },
+    { modelId: 'gpt-4o-mini-tts', name: 'GPT-4o Mini TTS', type: 'audio', provider: 'yescale' },
+    { modelId: 'tts-1', name: 'TTS 1', type: 'audio', provider: 'yescale' },
+    { modelId: 'tts-1-hd', name: 'TTS 1 HD', type: 'audio', provider: 'yescale' },
 
     // 图像模型
     { modelId: 'banana', name: 'Banana Pro', type: 'image', provider: 'fal' },
@@ -132,6 +239,11 @@ export const PRESET_MODELS: PresetModel[] = [
     { modelId: 'imagen-4.0-generate-001', name: 'Imagen 4', type: 'image', provider: 'google' },
     { modelId: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra', type: 'image', provider: 'google' },
     { modelId: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast', type: 'image', provider: 'google' },
+    { modelId: 'nano-banana-2', name: 'Nano Banana 2', type: 'image', provider: 'yescale' },
+    { modelId: 'nano-banana-pro', name: 'Nano Banana Pro', type: 'image', provider: 'yescale' },
+    { modelId: 'seedream-4.0', name: 'Seedream 4.0', type: 'image', provider: 'yescale' },
+    { modelId: 'seedream-4.5', name: 'Seedream 4.5', type: 'image', provider: 'yescale' },
+    { modelId: 'gpt-image', name: 'GPT Image', type: 'image', provider: 'yescale' },
     // 视频模型
     { modelId: 'doubao-seedance-1-0-pro-fast-251015', name: 'Seedance 1.0 Pro Fast', type: 'video', provider: 'ark' },
     { modelId: 'doubao-seedance-1-0-lite-i2v-250428', name: 'Seedance 1.0 Lite', type: 'video', provider: 'ark' },
@@ -144,6 +256,9 @@ export const PRESET_MODELS: PresetModel[] = [
     { modelId: 'veo-3.0-generate-001', name: 'Veo 3.0', type: 'video', provider: 'google' },
     { modelId: 'veo-3.0-fast-generate-001', name: 'Veo 3.0 Fast', type: 'video', provider: 'google' },
     { modelId: 'veo-2.0-generate-001', name: 'Veo 2.0', type: 'video', provider: 'google' },
+    { modelId: 'veo-3.1', name: 'Veo 3.1', type: 'video', provider: 'yescale' },
+    { modelId: 'kling-2.5-turbo', name: 'Kling 2.5 Turbo', type: 'video', provider: 'yescale' },
+    { modelId: 'hailuo-2.3', name: 'Hailuo 2.3', type: 'video', provider: 'yescale' },
     // 阿里云百炼图生视频模型
     { modelId: 'wan2.6-i2v-flash', name: 'Wan2.6 I2V Flash', type: 'video', provider: 'bailian' },
     { modelId: 'wan2.6-i2v', name: 'Wan2.6 I2V', type: 'video', provider: 'bailian' },
@@ -200,6 +315,7 @@ export function isPresetComingSoonModelKey(modelKey: string): boolean {
 export const PRESET_PROVIDERS: Omit<Provider, 'apiKey' | 'hasApiKey'>[] = [
     { id: 'ark', name: 'Volcengine Ark' },
     { id: 'google', name: 'Google AI Studio' },
+    { id: 'yescale', name: 'YEScale', baseUrl: 'https://api.yescale.io/v1', apiMode: 'openai-official', gatewayRoute: 'openai-compat' },
     { id: 'bailian', name: 'Alibaba Bailian' },
     { id: 'openrouter', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1' },
     { id: 'minimax', name: 'MiniMax Hailuo', baseUrl: 'https://api.minimaxi.com/v1' },
@@ -209,6 +325,7 @@ export const PRESET_PROVIDERS: Omit<Provider, 'apiKey' | 'hasApiKey'>[] = [
 
 const ZH_PROVIDER_NAME_MAP: Record<string, string> = {
     ark: '火山引擎 Ark',
+    yescale: 'YEScale',
     minimax: '海螺 MiniMax',
     vidu: '生数科技 Vidu',
     bailian: '阿里云百炼',
@@ -335,6 +452,15 @@ export const PROVIDER_TUTORIALS: ProviderTutorial[] = [
             {
                 text: 'google_step1',
                 url: 'https://aistudio.google.com/api-keys'
+            }
+        ]
+    },
+    {
+        providerId: 'yescale',
+        steps: [
+            {
+                text: 'yescale_step1',
+                url: 'https://www.yescale.vip/home'
             }
         ]
     },

@@ -25,6 +25,41 @@
     "pleaseSelect": "Please select...",
     "selectModel": "Select Model",
     "paramConfig": "Parameters",
+    "capability": {
+        "resolution": "Aspect Ratio",
+        "google_search": "Google Search",
+        "thinking": "Thinking",
+        "voice": "Voice",
+        "rate": "Speech Rate"
+    },
+    "capabilityOption": {
+        "voice": {
+            "alloy": "Alloy",
+            "ash": "Ash",
+            "ballad": "Ballad",
+            "coral": "Coral",
+            "echo": "Echo",
+            "sage": "Sage",
+            "shimmer": "Shimmer",
+            "verse": "Verse"
+        },
+        "rate": {
+            "normal": "Normal (1.0x)",
+            "plus20": "Faster (1.2x)",
+            "plus50": "Fast (1.5x)",
+            "plus100": "Very Fast (2.0x)"
+        },
+        "google_search": {
+            "disable": "Disabled",
+            "webSearch": "Web Search",
+            "imageSearch": "Image Search",
+            "both": "Web + Image"
+        },
+        "thinking": {
+            "minimal": "Minimal",
+            "high": "High"
+        }
+    },
     "fixed": "Fixed",
     "noParams": "No configurable parameters",
     "confirm": "Confirm",

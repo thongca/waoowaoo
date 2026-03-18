@@ -116,4 +116,29 @@ describe('api config filters', () => {
       'ark',
     ])
   })
+
+  it('includes YEScale models in default dropdowns when only grouped keys are configured', () => {
+    const providers: Provider[] = [
+      {
+        id: 'yescale',
+        name: 'YEScale',
+        apiKeyGroups: { openai: 'ys-openai-key' },
+      },
+    ]
+    const models: CustomModel[] = [
+      {
+        modelId: 'gpt-4o',
+        modelKey: 'yescale::gpt-4o',
+        name: 'GPT-4o',
+        type: 'llm',
+        provider: 'yescale',
+        price: 0,
+        enabled: true,
+      },
+    ]
+
+    const result = useApiConfigFilters({ providers, models })
+
+    expect(result.getEnabledModelsByType('llm').map((model) => model.modelKey)).toContain('yescale::gpt-4o')
+  })
 })

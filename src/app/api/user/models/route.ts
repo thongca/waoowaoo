@@ -28,12 +28,14 @@ interface StoredModel {
   name?: string
   type?: StoredModelType
   provider?: string
+  enabled?: boolean
 }
 
 interface StoredProvider {
   id?: string
   name?: string
   apiKey?: string
+  apiKeyGroups?: Record<string, string>
 }
 
 interface UserModelOption {
@@ -154,10 +156,21 @@ function parseStoredProviders(rawProviders: string | null | undefined): StoredPr
 }
 
 function hasStoredProviderApiKey(provider: StoredProvider): boolean {
-  return typeof provider.apiKey === 'string' && provider.apiKey.trim().length > 0
+  if (typeof provider.apiKey === 'string' && provider.apiKey.trim().length > 0) {
+    return true
+  }
+
+  if (!provider.apiKeyGroups || typeof provider.apiKeyGroups !== 'object') {
+    return false
+  }
+
+  return Object.values(provider.apiKeyGroups).some(
+    (value) => typeof value === 'string' && value.trim().length > 0,
+  )
 }
 
 function isUserSelectableModel(model: StoredModel): boolean {
+  if (model.enabled === false) return false
   if (model.type !== 'audio') return true
   const modelId = toModelId(model)
   return !AUDIO_MODEL_EXCLUDED_IDS.has(modelId)

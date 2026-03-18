@@ -3,6 +3,7 @@ import { createAudioGenerator, createImageGenerator, createVideoGenerator } from
 import { GoogleVeoVideoGenerator } from '@/lib/generators/video/google'
 import { OpenAICompatibleVideoGenerator } from '@/lib/generators/video/openai-compatible'
 import { BailianAudioGenerator, BailianImageGenerator, BailianVideoGenerator, SiliconFlowAudioGenerator } from '@/lib/generators/official'
+import { YEScaleAudioGenerator, YEScaleImageGenerator, YEScaleVideoGenerator } from '@/lib/generators/yescale'
 
 describe('generator factory', () => {
   it('routes gemini-compatible video provider to Google video generator', () => {
@@ -18,5 +19,11 @@ describe('generator factory', () => {
 
   it('routes siliconflow audio provider to official generator', () => {
     expect(createAudioGenerator('siliconflow')).toBeInstanceOf(SiliconFlowAudioGenerator)
+  })
+
+  it('routes yescale providers to YEScale media generators', () => {
+    expect(createImageGenerator('yescale')).toBeInstanceOf(YEScaleImageGenerator)
+    expect(createVideoGenerator('yescale')).toBeInstanceOf(YEScaleVideoGenerator)
+    expect(createAudioGenerator('yescale')).toBeInstanceOf(YEScaleAudioGenerator)
   })
 })

@@ -21,6 +21,10 @@ function readText(value: unknown): string {
 }
 
 const MAX_SPLIT_BOUNDARY_ATTEMPTS = 2
+
+function hasRemainingSourceContent(content: string, fromIndex: number): boolean {
+  return content.slice(Math.max(0, fromIndex)).trim().length > 0
+}
 const CLIP_BOUNDARY_SUFFIX = `
 
 [Boundary Constraints]
@@ -165,6 +169,10 @@ export async function handleClipsBuildTask(job: Job<TaskJobData>) {
         const endText = readText(clipData.end)
         const match = matcher.matchBoundary(startText, endText, searchFrom)
         if (!match) {
+          if (!hasRemainingSourceContent(contentToProcess, searchFrom)) {
+            failedAt = null
+            break
+          }
           failedAt = { index: i + 1, startText, endText }
           break
         }

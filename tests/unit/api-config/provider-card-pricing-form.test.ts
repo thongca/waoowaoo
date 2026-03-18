@@ -7,11 +7,71 @@ import {
 import {
   buildCustomPricingFromModelForm,
   buildProviderConnectionPayload,
+  resolveProviderConnectionTestApiKey,
 } from '@/app/[locale]/profile/components/api-config/provider-card/hooks/useProviderCardState'
+import { buildModelsForSave } from '@/app/[locale]/profile/components/api-config/hooks'
+import type { CustomModel } from '@/app/[locale]/profile/components/api-config/types'
 
 describe('provider card pricing form behavior', () => {
   it('allows openai-compatible provider to add llm/image/video', () => {
     expect(getAddableModelTypesForProvider('openai-compatible:oa-1')).toEqual(['llm', 'image', 'video'])
+  })
+
+  it('allows yescale provider to add llm/image/video/audio', () => {
+    expect(getAddableModelTypesForProvider('yescale')).toEqual(['llm', 'image', 'video', 'audio'])
+  })
+
+  it('builds preset provider connection payload for yescale without requiring baseUrl', () => {
+    expect(
+      buildProviderConnectionPayload({
+        providerKey: 'yescale',
+        apiKey: '',
+        apiKeyGroups: { openai: 'ys-key' },
+        llmModel: 'gpt-4o',
+      }),
+    ).toEqual({
+      apiType: 'yescale',
+      apiKey: 'ys-key',
+      llmModel: 'gpt-4o',
+    })
+  })
+
+  it('resolves yescale test api key from the model default group first', () => {
+    expect(
+      resolveProviderConnectionTestApiKey({
+        providerKey: 'yescale',
+        apiKeyGroups: {
+          premium: 'premium-key',
+          openai: 'openai-key',
+        },
+        llmModel: 'gpt-4o',
+      }),
+    ).toBe('openai-key')
+  })
+
+  it('falls back to the first configured yescale group when the preferred group is missing', () => {
+    expect(
+      resolveProviderConnectionTestApiKey({
+        providerKey: 'yescale',
+        apiKeyGroups: {
+          video: 'video-key',
+        },
+        llmModel: 'gpt-4o',
+      }),
+    ).toBe('video-key')
+  })
+
+  it('resolves YEScale Gemini TTS models to the gemini-op group first', () => {
+    expect(
+      resolveProviderConnectionTestApiKey({
+        providerKey: 'yescale',
+        apiKeyGroups: {
+          'gemini-op': 'gemini-op-key',
+          openai: 'openai-key',
+        },
+        llmModel: 'gemini-2.5-flash-preview-tts',
+      }),
+    ).toBe('gemini-op-key')
   })
 
   it('shows llm/image/video tabs by default for openai-compatible even with only image models', () => {
@@ -169,5 +229,32 @@ describe('provider card pricing form behavior', () => {
       baseUrl: 'https://compat.example.com/v1',
       llmModel: 'gpt-4.1-mini',
     })
+  })
+
+  it('keeps disabled custom models in save payload while omitting disabled preset-like models', () => {
+    const models: CustomModel[] = [
+      {
+        modelId: 'gpt-4o',
+        modelKey: 'yescale::gpt-4o',
+        name: 'GPT-4o',
+        type: 'llm',
+        provider: 'yescale',
+        price: 0,
+        enabled: false,
+      },
+      {
+        modelId: 'my-custom-model',
+        modelKey: 'yescale::my-custom-model',
+        name: 'My Custom Model',
+        type: 'llm',
+        provider: 'yescale',
+        price: 0,
+        enabled: false,
+      },
+    ]
+
+    expect(buildModelsForSave(models).map((model) => model.modelKey)).toEqual([
+      'yescale::my-custom-model',
+    ])
   })
 })

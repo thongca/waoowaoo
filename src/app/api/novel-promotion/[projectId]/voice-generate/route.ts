@@ -54,6 +54,10 @@ function validateSpeakerVoiceForProvider(
     return { ok: true }
   }
 
+  if (providerKey === 'yescale') {
+    return { ok: true }
+  }
+
   if (providerKey === 'bailian') {
     const hasUploadedReference =
       !!character?.customVoiceUrl ||

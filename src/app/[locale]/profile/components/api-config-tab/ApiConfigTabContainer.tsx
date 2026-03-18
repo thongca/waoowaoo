@@ -102,6 +102,7 @@ export function ApiConfigTabContainer() {
     flushConfig,
     updateProviderHidden,
     updateProviderApiKey,
+    updateProviderApiKeyGroups,
     updateProviderBaseUrl,
     reorderProviders,
     addProvider,
@@ -284,6 +285,7 @@ export function ApiConfigTabContainer() {
             onAddGeminiProvider={() => setShowAddGeminiProvider(true)}
             onToggleModel={toggleModel}
             onUpdateApiKey={updateProviderApiKey}
+            onUpdateApiKeyGroups={updateProviderApiKeyGroups}
             onUpdateBaseUrl={updateProviderBaseUrl}
             onReorderProviders={reorderProviders}
             onDeleteModel={deleteModel}

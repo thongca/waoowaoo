@@ -416,6 +416,46 @@ describe('api specific - user api-config PUT provider uniqueness', () => {
     expect(prismaMock.userPreference.upsert).toHaveBeenCalledTimes(1)
   })
 
+  it('persists disabled custom models when enabled is false', async () => {
+    installAuthMocks()
+    mockAuthenticated('user-1')
+    const route = await import('@/app/api/user/api-config/route')
+
+    const req = buildMockRequest({
+      path: '/api/user/api-config',
+      method: 'PUT',
+      body: {
+        providers: [
+          {
+            id: 'google',
+            name: 'Google AI Studio',
+            apiKey: 'google-key',
+          },
+        ],
+        models: [
+          {
+            type: 'llm',
+            provider: 'google',
+            modelId: 'my-custom-model',
+            modelKey: 'google::my-custom-model',
+            name: 'My Custom Model',
+            enabled: false,
+          },
+        ],
+      },
+    })
+
+    const res = await route.PUT(req, routeContext)
+    expect(res.status).toBe(200)
+
+    const savedModels = readSavedModelsFromUpsert()
+    expect(savedModels).toHaveLength(1)
+    expect(savedModels[0]).toMatchObject({
+      modelKey: 'google::my-custom-model',
+      enabled: false,
+    })
+  })
+
   it('requires llmProtocol when adding a new openai-compatible llm model', async () => {
     installAuthMocks()
     mockAuthenticated('user-1')

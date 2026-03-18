@@ -35,6 +35,8 @@ interface CapabilityFieldDefinition {
     field: string
     options: CapabilityValue[]
     label: string
+    labelKey?: string
+    optionLabelKeys?: Record<string, string>
 }
 
 interface SettingsModalProps {
@@ -77,7 +79,12 @@ function isCapabilityValue(value: unknown): value is CapabilityValue {
 }
 
 function toFieldLabel(field: string): string {
-    return field.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase())
+    return field
+        .replace(/[_-]+/g, ' ')
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^./, (char) => char.toUpperCase())
 }
 
 function parseBySample(input: string, sample: CapabilityValue): CapabilityValue {
@@ -92,6 +99,9 @@ function extractCapabilityFields(
 ): CapabilityFieldDefinition[] {
     const rawNamespace = capabilities?.[namespace]
     if (!isRecord(rawNamespace)) return []
+    const fieldI18n = isRecord(rawNamespace.fieldI18n)
+        ? rawNamespace.fieldI18n as Record<string, { labelKey?: string; optionLabelKeys?: Record<string, string> }>
+        : {}
 
     return Object.entries(rawNamespace)
         .filter(([key, value]) => key.endsWith('Options') && Array.isArray(value) && value.every(isCapabilityValue) && value.length > 0)
@@ -101,6 +111,10 @@ function extractCapabilityFields(
                 field,
                 options: value as CapabilityValue[],
                 label: toFieldLabel(field),
+                labelKey: typeof fieldI18n[field]?.labelKey === 'string' ? fieldI18n[field].labelKey : undefined,
+                optionLabelKeys: isRecord(fieldI18n[field]?.optionLabelKeys)
+                    ? fieldI18n[field].optionLabelKeys
+                    : undefined,
             }
         })
 }

@@ -32,8 +32,12 @@ export function readStringOption(value: unknown, optionName: string): string | u
   return trimmed
 }
 
-export async function resolveOpenAICompatClientConfig(userId: string, providerId: string): Promise<OpenAICompatClientConfig> {
-  const config = await getProviderConfig(userId, providerId)
+export async function resolveOpenAICompatClientConfig(
+  userId: string,
+  providerId: string,
+  modelId?: string,
+): Promise<OpenAICompatClientConfig> {
+  const config = await getProviderConfig(userId, providerId, modelId ? { modelId } : undefined)
   if (!config.baseUrl) {
     throw new Error(`PROVIDER_BASE_URL_MISSING: ${config.id}`)
   }

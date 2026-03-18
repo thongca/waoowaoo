@@ -20,12 +20,52 @@ import type {
 } from './openai-compat-media-template'
 import { validateOpenAICompatMediaTemplate } from './user-api/model-template/validator'
 
+const YESCALE_KEY_GROUPS = new Set([
+  'normal',
+  'openai',
+  'premium',
+  'deepseek',
+  'gemini',
+  'gemini-op',
+  'drawing',
+  'video',
+])
+
+const YESCALE_MODEL_GROUP_DEFAULTS: Readonly<Record<string, string>> = {
+  'gpt-4o': 'openai',
+  'gpt-4o-mini': 'openai',
+  'gpt-4.1': 'openai',
+  'gpt-4.1-mini': 'openai',
+  'gpt-4.1-nano': 'openai',
+  'gpt-5': 'openai',
+  'gpt-5-chat-latest': 'openai',
+  'gpt-5-mini': 'openai',
+  'gpt-5-nano': 'openai',
+  'claude-sonnet-4': 'premium',
+  'gemini-2.5-flash': 'gemini',
+  'deepseek-chat': 'deepseek',
+  'gemini-2.5-flash-preview-tts': 'gemini-op',
+  'gemini-2.5-pro-preview-tts': 'gemini-op',
+  'gpt-4o-mini-tts': 'openai',
+  'tts-1': 'openai',
+  'tts-1-hd': 'openai',
+  'nano-banana-2': 'drawing',
+  'nano-banana-pro': 'drawing',
+  'seedream-4.0': 'drawing',
+  'seedream-4.5': 'drawing',
+  'gpt-image': 'drawing',
+  'veo-3.1': 'video',
+  'kling-2.5-turbo': 'video',
+  'hailuo-2.3': 'video',
+}
+
 export interface CustomModel {
   modelId: string
   modelKey: string
   name: string
   type: UnifiedModelType
   provider: string
+  keyGroup?: string
   llmProtocol?: 'responses' | 'chat-completions'
   llmProtocolCheckedAt?: string
   compatMediaTemplate?: OpenAICompatMediaTemplate
@@ -53,6 +93,7 @@ interface CustomProvider {
   name: string
   baseUrl?: string
   apiKey?: string
+  apiKeyGroups?: Record<string, string>
   apiMode?: 'gemini-sdk' | 'openai-official'
   gatewayRoute?: GatewayRouteType
 }
@@ -108,6 +149,32 @@ function isGatewayRoute(value: unknown): value is GatewayRouteType {
 
 function isLlmProtocol(value: unknown): value is LlmProtocolType {
   return value === 'responses' || value === 'chat-completions'
+}
+
+function normalizeApiKeyGroups(
+  raw: unknown,
+  field: string,
+  providerId: string,
+): Record<string, string> | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!isRecord(raw)) {
+    throw new Error(`PROVIDER_PAYLOAD_INVALID: ${field}`)
+  }
+  if (getProviderKey(providerId) !== 'yescale') {
+    throw new Error(`PROVIDER_PAYLOAD_INVALID: ${field}`)
+  }
+
+  const normalized: Record<string, string> = {}
+  for (const [groupKey, rawValue] of Object.entries(raw)) {
+    if (!YESCALE_KEY_GROUPS.has(groupKey)) {
+      throw new Error(`PROVIDER_PAYLOAD_INVALID: ${field}.${groupKey}`)
+    }
+    if (typeof rawValue !== 'string') {
+      throw new Error(`PROVIDER_PAYLOAD_INVALID: ${field}.${groupKey}`)
+    }
+    normalized[groupKey] = rawValue.trim()
+  }
+  return Object.keys(normalized).length > 0 ? normalized : undefined
 }
 
 function assertModelKey(value: string, field: string): { provider: string; modelId: string; modelKey: string } {
@@ -171,8 +238,12 @@ function parseCustomProviders(rawProviders: string | null | undefined): CustomPr
       throw new Error(`PROVIDER_GATEWAY_ROUTE_INVALID: providers[${index}].gatewayRoute`)
     } else if (providerKey === 'openai-compatible' && gatewayRouteRaw === 'official') {
       throw new Error(`PROVIDER_GATEWAY_ROUTE_INVALID: providers[${index}].gatewayRoute`)
-    } else if (providerKey !== 'openai-compatible' && gatewayRouteRaw === 'openai-compat') {
+    } else if (providerKey === 'yescale' && gatewayRouteRaw === 'official') {
       throw new Error(`PROVIDER_GATEWAY_ROUTE_INVALID: providers[${index}].gatewayRoute`)
+    } else if (providerKey !== 'openai-compatible' && gatewayRouteRaw === 'openai-compat') {
+      if (providerKey !== 'yescale') {
+        throw new Error(`PROVIDER_GATEWAY_ROUTE_INVALID: providers[${index}].gatewayRoute`)
+      }
     } else {
       gatewayRoute = gatewayRouteRaw
     }
@@ -182,6 +253,7 @@ function parseCustomProviders(rawProviders: string | null | undefined): CustomPr
       name,
       baseUrl: readTrimmedString(raw.baseUrl) || undefined,
       apiKey: readTrimmedString(raw.apiKey) || undefined,
+      apiKeyGroups: normalizeApiKeyGroups(raw.apiKeyGroups, `providers[${index}].apiKeyGroups`, id),
       apiMode,
       gatewayRoute,
     })
@@ -240,6 +312,13 @@ function normalizeStoredModel(raw: unknown, index: number): CustomModel {
   const compatMediaTemplateSource = compatMediaTemplateSourceRaw === 'ai' || compatMediaTemplateSourceRaw === 'manual'
     ? compatMediaTemplateSourceRaw
     : undefined
+  const keyGroup = readTrimmedString(raw.keyGroup) || undefined
+  if (keyGroup && getProviderKey(provider) !== 'yescale') {
+    throw new Error(`MODEL_PAYLOAD_INVALID: models[${index}].keyGroup not allowed`)
+  }
+  if (keyGroup && !YESCALE_KEY_GROUPS.has(keyGroup)) {
+    throw new Error(`MODEL_PAYLOAD_INVALID: models[${index}].keyGroup invalid`)
+  }
 
   return {
     modelId,
@@ -247,6 +326,7 @@ function normalizeStoredModel(raw: unknown, index: number): CustomModel {
     provider,
     type: raw.type,
     name: readTrimmedString(raw.name) || modelId,
+    ...(keyGroup ? { keyGroup } : {}),
     ...(llmProtocol ? { llmProtocol } : {}),
     ...(llmProtocolCheckedAt ? { llmProtocolCheckedAt } : {}),
     ...(compatMediaTemplate ? { compatMediaTemplate } : {}),
@@ -334,7 +414,7 @@ export async function resolveModelSelection(
   }
 
   const providerKey = getProviderKey(exact.provider).toLowerCase()
-  const llmProtocol = mediaType === 'llm' && providerKey === 'openai-compatible'
+  const llmProtocol = mediaType === 'llm' && (providerKey === 'openai-compatible' || providerKey === 'yescale')
     ? (exact.llmProtocol || 'chat-completions')
     : undefined
   const compatMediaTemplate = (mediaType === 'image' || mediaType === 'video') && providerKey === 'openai-compatible'
@@ -365,7 +445,7 @@ async function resolveSingleModelSelection(
 
   const model = models[0]
   const providerKey = getProviderKey(model.provider).toLowerCase()
-  const llmProtocol = mediaType === 'llm' && providerKey === 'openai-compatible'
+  const llmProtocol = mediaType === 'llm' && (providerKey === 'openai-compatible' || providerKey === 'yescale')
     ? (model.llmProtocol || 'chat-completions')
     : undefined
   const compatMediaTemplate = (mediaType === 'image' || mediaType === 'video') && providerKey === 'openai-compatible'
@@ -410,23 +490,72 @@ export interface ProviderConfig {
   id: string
   name: string
   apiKey: string
+  keyGroup?: string
   baseUrl?: string
   apiMode?: 'gemini-sdk' | 'openai-official'
   gatewayRoute?: GatewayRouteType
 }
 
-export async function getProviderConfig(userId: string, providerId: string): Promise<ProviderConfig> {
-  const { providers } = await readUserConfig(userId)
+function decryptGroupedApiKeys(apiKeyGroups?: Record<string, string>): Record<string, string> | undefined {
+  if (!apiKeyGroups) return undefined
+  const decrypted = Object.fromEntries(
+    Object.entries(apiKeyGroups).map(([groupKey, value]) => [groupKey, value ? decryptApiKey(value) : '']),
+  )
+  return Object.keys(decrypted).length > 0 ? decrypted : undefined
+}
+
+function resolveYeScaleKeyGroup(modelId?: string, models?: CustomModel[]): string {
+  const override = modelId
+    ? models?.find((model) => model.provider === 'yescale' && model.modelId === modelId)?.keyGroup
+    : undefined
+  if (override && YESCALE_KEY_GROUPS.has(override)) return override
+  if (modelId && YESCALE_MODEL_GROUP_DEFAULTS[modelId]) return YESCALE_MODEL_GROUP_DEFAULTS[modelId]
+  return 'normal'
+}
+
+function resolveYeScaleApiKey(input: {
+  provider: CustomProvider
+  modelId?: string
+  keyGroup?: string
+  models: CustomModel[]
+}): { apiKey: string; keyGroup: string } {
+  const groupKey = input.keyGroup && YESCALE_KEY_GROUPS.has(input.keyGroup)
+    ? input.keyGroup
+    : resolveYeScaleKeyGroup(input.modelId, input.models)
+  const groupedKeys = decryptGroupedApiKeys(input.provider.apiKeyGroups)
+  const groupedKey = groupedKeys?.[groupKey]?.trim()
+  if (groupedKey) return { apiKey: groupedKey, keyGroup: groupKey }
+  const fallback = input.provider.apiKey ? decryptApiKey(input.provider.apiKey) : ''
+  if (fallback) return { apiKey: fallback, keyGroup: groupKey }
+  throw new Error(`PROVIDER_API_KEY_MISSING: ${input.provider.id}:${groupKey}`)
+}
+
+export async function getProviderConfig(
+  userId: string,
+  providerId: string,
+  options?: { modelId?: string; keyGroup?: string },
+): Promise<ProviderConfig> {
+  const { providers, models } = await readUserConfig(userId)
   const provider = pickProviderStrict(providers, providerId)
 
-  if (!provider.apiKey) {
+  const providerKey = getProviderKey(provider.id)
+  const yescaleConfig = providerKey === 'yescale'
+    ? resolveYeScaleApiKey({ provider, modelId: options?.modelId, keyGroup: options?.keyGroup, models })
+    : null
+  const apiKey = yescaleConfig
+    ? yescaleConfig.apiKey
+    : provider.apiKey
+      ? decryptApiKey(provider.apiKey)
+      : ''
+  if (!apiKey) {
     throw new Error(`PROVIDER_API_KEY_MISSING: ${provider.id}`)
   }
 
   return {
     id: provider.id,
     name: provider.name,
-    apiKey: decryptApiKey(provider.apiKey),
+    apiKey,
+    ...(yescaleConfig ? { keyGroup: yescaleConfig.keyGroup } : {}),
     baseUrl: normalizeProviderBaseUrl(provider.id, provider.baseUrl),
     apiMode: provider.apiMode,
     gatewayRoute: provider.gatewayRoute,
@@ -483,7 +612,7 @@ export async function getModelPrice(userId: string, model: string): Promise<numb
  */
 export async function getAudioApiKey(userId: string, model?: string | null): Promise<string> {
   const selection = await resolveModelSelectionOrSingle(userId, model, 'audio')
-  return (await getProviderConfig(userId, selection.provider)).apiKey
+  return (await getProviderConfig(userId, selection.provider, { modelId: selection.modelId })).apiKey
 }
 
 /**
@@ -491,7 +620,7 @@ export async function getAudioApiKey(userId: string, model?: string | null): Pro
  */
 export async function getLipSyncApiKey(userId: string, model?: string | null): Promise<string> {
   const selection = await resolveModelSelectionOrSingle(userId, model, 'lipsync')
-  return (await getProviderConfig(userId, selection.provider)).apiKey
+  return (await getProviderConfig(userId, selection.provider, { modelId: selection.modelId })).apiKey
 }
 
 /**
@@ -504,5 +633,8 @@ export async function hasApiConfig(userId: string): Promise<boolean> {
   })
 
   const providers = parseCustomProviders(pref?.customProviders)
-  return providers.some((provider) => !!provider.apiKey)
+  return providers.some((provider) => {
+    if (provider.apiKey) return true
+    return Object.values(provider.apiKeyGroups || {}).some((value) => value.trim().length > 0)
+  })
 }

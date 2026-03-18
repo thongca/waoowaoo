@@ -21,6 +21,7 @@ export interface ProviderCardProps {
   defaultModels: ProviderCardDefaultModels
   onToggleModel: (modelKey: string) => void
   onUpdateApiKey: (providerId: string, apiKey: string) => void
+  onUpdateApiKeyGroups?: (providerId: string, apiKeyGroups: Record<string, string>) => void
   onUpdateBaseUrl?: (providerId: string, baseUrl: string) => void
   onDeleteModel: (modelKey: string) => void
   onUpdateModel?: (modelKey: string, updates: Partial<CustomModel>) => void
@@ -57,6 +58,7 @@ export type ProviderCardTranslator = (
  */
 export const VERIFIABLE_PROVIDER_KEYS = new Set([
   'ark', 'google', 'openrouter', 'minimax', 'fal', 'vidu',
+  'yescale',
   'bailian', 'siliconflow',
   'openai-compatible', 'gemini-compatible',
 ])

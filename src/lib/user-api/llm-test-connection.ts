@@ -6,6 +6,7 @@ type SupportedProvider =
   | 'google'
   | 'anthropic'
   | 'openai'
+  | 'yescale'
   | 'bailian'
   | 'siliconflow'
   | 'openai-compatible'
@@ -41,6 +42,7 @@ function normalizeProvider(payload: TestConnectionPayload): SupportedProvider {
     case 'openai':
     case 'openai-compatible':
     case 'gemini-compatible':
+    case 'yescale':
     case 'bailian':
     case 'siliconflow':
     case 'custom':
@@ -189,6 +191,14 @@ export async function testLlmConnection(payload: TestConnectionPayload): Promise
         model: requestedModel || undefined,
       })
       return { provider, message: 'openai 连接成功', ...tested }
+    }
+    case 'yescale': {
+      const tested = await testOpenAICompatibleConnection({
+        apiKey,
+        baseURL: 'https://api.yescale.io/v1',
+        model: requestedModel || undefined,
+      })
+      return { provider, message: 'yescale 连接成功', ...tested }
     }
     case 'bailian': {
       const tested = await testBailianProbe(apiKey)

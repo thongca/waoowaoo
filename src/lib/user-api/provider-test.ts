@@ -18,6 +18,7 @@ export interface TestProviderResult {
 }
 
 type PresetProviderType = 'ark' | 'google' | 'openrouter' | 'minimax' | 'fal' | 'vidu'
+  | 'yescale'
   | 'bailian'
   | 'siliconflow'
 type CompatibleProviderType = 'openai-compatible' | 'gemini-compatible'
@@ -855,6 +856,8 @@ export async function testProviderConnection(payload: TestProviderPayload): Prom
       return testCompatibleProvider(baseUrl!, apiKey, llmModel)
     case 'gemini-compatible':
       return testCompatibleProvider(baseUrl!, apiKey, llmModel)
+    case 'yescale':
+      return testCompatibleProvider('https://api.yescale.io/v1', apiKey, llmModel)
     case 'ark':
       return testArkProvider(apiKey)
     case 'google':

@@ -36,6 +36,8 @@ export interface CapabilityFieldDefinition {
     label: string
     options: CapabilityValue[]
     disabledOptions?: CapabilityValue[]
+    labelKey?: string
+    optionLabelKeys?: Record<string, string>
 }
 
 export interface CapabilityBooleanToggle {
@@ -203,6 +205,13 @@ export function ModelCapabilityDropdown({
     const visibleCapabilityFields = capabilityFields.filter((field) => field.field !== 'generationMode')
 
     const resolveCapabilityLabel = useCallback((field: CapabilityFieldDefinition): string => {
+        if (field.labelKey) {
+            try {
+                return t(field.labelKey as never)
+            } catch {
+                // fall back below
+            }
+        }
         try {
             return tv(`capability.${field.field}` as never)
         } catch {
@@ -211,7 +220,15 @@ export function ModelCapabilityDropdown({
     }, [tv])
 
     /** Format option value for display — converts booleans to localized On/Off */
-    const formatOptionLabel = useCallback((val: CapabilityValue): string => {
+    const formatOptionLabel = useCallback((field: CapabilityFieldDefinition, val: CapabilityValue): string => {
+        const optionKey = field.optionLabelKeys?.[String(val)]
+        if (optionKey) {
+            try {
+                return t(optionKey as never)
+            } catch {
+                // fall through to generic formatting
+            }
+        }
         if (val === true || val === 'true') return t('boolOn')
         if (val === false || val === 'false') return t('boolOff')
         return String(val)
@@ -223,7 +240,7 @@ export function ModelCapabilityDropdown({
             const val = capabilityOverrides[def.field] !== undefined
                 ? capabilityOverrides[def.field]
                 : (def.options.length > 0 ? def.options[0] : '')
-            return formatOptionLabel(val)
+            return formatOptionLabel(def, val)
         })
         .concat(
             booleanToggles.map((toggle) => {
@@ -362,7 +379,7 @@ export function ModelCapabilityDropdown({
                                                                 const ratioValue = String(def.options[0])
                                                                 return isR && isValidRatioText(ratioValue) ? <RatioIcon ratio={ratioValue} size={10} /> : null
                                                             })()}
-                                                            {formatOptionLabel(def.options[0])}
+                                                            {formatOptionLabel(def, def.options[0])}
                                                             <span className="text-[var(--glass-text-tertiary)] text-[10px]">({t('fixed')})</span>
                                                         </span>
                                                     ) : useSelect ? (
@@ -376,7 +393,7 @@ export function ModelCapabilityDropdown({
                                                                     const s = String(opt)
                                                                     return (
                                                                         <option key={s} value={s}>
-                                                                            {formatOptionLabel(opt)}
+                                                                            {formatOptionLabel(def, opt)}
                                                                         </option>
                                                                     )
                                                                 })}
@@ -402,7 +419,7 @@ export function ModelCapabilityDropdown({
                                                                             }`}
                                                                     >
                                                                         {isR && isValidRatioText(s) && <RatioIcon ratio={s} size={10} selected={on} />}
-                                                                        {formatOptionLabel(opt)}
+                                                                        {formatOptionLabel(def, opt)}
                                                                     </button>
                                                                 )
                                                             })}

@@ -20,6 +20,7 @@ import { GoogleVeoVideoGenerator } from './video/google'
 import { OpenAICompatibleVideoGenerator } from './video'
 import { MinimaxVideoGenerator } from './minimax'
 import { ViduVideoGenerator } from './vidu'
+import { YEScaleAudioGenerator, YEScaleImageGenerator, YEScaleVideoGenerator } from './yescale'
 import { getProviderKey } from '@/lib/api-config'
 import {
     BailianAudioGenerator,
@@ -67,6 +68,8 @@ export function createImageGenerator(provider: string, modelId?: string): ImageG
             return new BailianImageGenerator()
         case 'siliconflow':
             return new SiliconFlowImageGenerator()
+        case 'yescale':
+            return new YEScaleImageGenerator()
         default:
             throw new Error(`Unknown image generator provider: ${provider}`)
     }
@@ -96,6 +99,8 @@ export function createVideoGenerator(provider: string): VideoGenerator {
             return new BailianVideoGenerator()
         case 'siliconflow':
             return new SiliconFlowVideoGenerator()
+        case 'yescale':
+            return new YEScaleVideoGenerator()
         default:
             throw new Error(`Unknown video generator provider: ${provider}`)
     }
@@ -111,6 +116,8 @@ export function createAudioGenerator(provider: string): AudioGenerator {
             return new BailianAudioGenerator()
         case 'siliconflow':
             return new SiliconFlowAudioGenerator()
+        case 'yescale':
+            return new YEScaleAudioGenerator()
         default:
             throw new Error(`Unknown audio generator provider: ${provider}`)
     }

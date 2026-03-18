@@ -40,7 +40,7 @@ async function resolveAssistantLanguageModel(input: {
   languageModel: LanguageModel
 }> {
   const selection = await resolveLlmRuntimeModel(input.userId, input.analysisModelKey)
-  const providerConfig = await getProviderConfig(input.userId, selection.provider)
+  const providerConfig = await getProviderConfig(input.userId, selection.provider, { modelId: selection.modelId })
   const providerKey = getProviderKey(selection.provider)
 
   if (providerKey === 'google' || providerKey === 'gemini-compatible') {

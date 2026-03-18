@@ -41,6 +41,7 @@ interface ApiConfigProviderListProps {
   onAddGeminiProvider: () => void
   onToggleModel: (modelKey: string, providerId: string) => void
   onUpdateApiKey: (providerId: string, apiKey: string) => void
+  onUpdateApiKeyGroups: (providerId: string, apiKeyGroups: Record<string, string>) => void
   onUpdateBaseUrl: (providerId: string, baseUrl: string) => void
   onReorderProviders: (activeProviderId: string, overProviderId: string) => void
   onDeleteModel: (modelKey: string, providerId: string) => void
@@ -71,6 +72,7 @@ export function ApiConfigProviderList({
   onAddGeminiProvider,
   onToggleModel,
   onUpdateApiKey,
+  onUpdateApiKeyGroups,
   onUpdateBaseUrl,
   onReorderProviders,
   onDeleteModel,
@@ -156,6 +158,7 @@ export function ApiConfigProviderList({
                       defaultModels={defaultModels}
                       onToggleModel={(modelKey) => onToggleModel(modelKey, provider.id)}
                       onUpdateApiKey={onUpdateApiKey}
+                      onUpdateApiKeyGroups={onUpdateApiKeyGroups}
                       onUpdateBaseUrl={onUpdateBaseUrl}
                       onDeleteModel={(modelKey) => onDeleteModel(modelKey, provider.id)}
                       onUpdateModel={(modelKey, updates) => onUpdateModel(modelKey, updates, provider.id)}
@@ -205,6 +208,7 @@ export function ApiConfigProviderList({
                     defaultModels={defaultModels}
                     onToggleModel={(modelKey) => onToggleModel(modelKey, provider.id)}
                     onUpdateApiKey={onUpdateApiKey}
+                    onUpdateApiKeyGroups={onUpdateApiKeyGroups}
                     onUpdateBaseUrl={onUpdateBaseUrl}
                     onDeleteModel={(modelKey) => onDeleteModel(modelKey, provider.id)}
                     onUpdateModel={(modelKey, updates) => onUpdateModel(modelKey, updates, provider.id)}

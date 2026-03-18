@@ -144,8 +144,14 @@ const CLIP_BOUNDARY_SUFFIX = `
 
 [Boundary Constraints]
 1. The "start" and "end" anchors must come from the original text and be locatable.
-2. Allow punctuation/whitespace differences, but do not rewrite key entities or events.
-3. If anchors cannot be located reliably, return [] directly.`
+2. Only use anchors from the "Full text" section. Never use "Location library", "Character library", "Character introductions", or any reference section as clip content.
+3. If the story content has already been fully covered, do not emit extra trailing clips for reference material.
+4. Allow punctuation/whitespace differences, but do not rewrite key entities or events.
+5. If anchors cannot be located reliably, return [] directly.`
+
+function hasRemainingSourceContent(content: string, fromIndex: number): boolean {
+  return content.slice(Math.max(0, fromIndex)).trim().length > 0
+}
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -409,6 +415,16 @@ export async function runStoryToScriptOrchestrator(
       const clipId = `clip_${index + 1}`
       const match = matcher.matchBoundary(startText, endText, searchFrom)
       if (!match) {
+        if (!hasRemainingSourceContent(content, searchFrom)) {
+          onLog?.('忽略超出源文本范围的尾部片段', {
+            attempt,
+            ignoredClip: clipId,
+            startText,
+            endText,
+          })
+          failedAt = null
+          break
+        }
         failedAt = { clipId, startText, endText }
         break
       }

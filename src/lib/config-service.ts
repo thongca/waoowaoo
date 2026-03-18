@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import {
   type CapabilitySelections,
   type CapabilityValue,
+  type UnifiedModelType,
   composeModelKey as composeStrictModelKey,
   parseModelKeyStrict,
 } from '@/lib/model-config-contract'
@@ -189,7 +190,7 @@ export async function getUserModelConfig(userId: string): Promise<UserModelConfi
 }
 
 export function resolveModelCapabilityGenerationOptions(input: {
-  modelType: 'llm' | 'image' | 'video'
+  modelType: UnifiedModelType
   modelKey: string
   capabilityDefaults?: CapabilitySelections
   capabilityOverrides?: CapabilitySelections
@@ -222,7 +223,7 @@ export function resolveModelCapabilityGenerationOptions(input: {
 export async function resolveProjectModelCapabilityGenerationOptions(input: {
   projectId: string
   userId: string
-  modelType: 'llm' | 'image' | 'video'
+  modelType: UnifiedModelType
   modelKey: string
   runtimeSelections?: Record<string, CapabilityValue>
 }): Promise<Record<string, CapabilityValue>> {

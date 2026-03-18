@@ -3,6 +3,7 @@
 import type { ProviderCardProps, ProviderCardTranslator } from './types'
 import type { UseProviderCardStateResult } from './hooks/useProviderCardState'
 import { AppIcon } from '@/components/ui/icons'
+import { YESCALE_KEY_GROUP_ORDER, YESCALE_KEY_GROUPS } from '../types'
 
 interface ProviderBaseFieldsProps {
   provider: ProviderCardProps['provider']
@@ -21,6 +22,77 @@ export function ProviderBaseFields({ provider, t, state }: ProviderBaseFieldsPro
         return 'http://localhost:8000'
     }
   })()
+
+  if (state.isYeScaleProvider) {
+    return (
+      <>
+        <div className="space-y-2 px-3.5 pt-2.5">
+          {YESCALE_KEY_GROUP_ORDER.map((groupKey) => {
+            const group = YESCALE_KEY_GROUPS[groupKey]
+            const value = state.tempKeyGroups[groupKey] || ''
+            const visible = state.showKeyGroups[groupKey] === true
+            return (
+              <div key={groupKey} className="glass-surface-soft rounded-xl px-3 py-2.5">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-semibold text-[var(--glass-text-primary)]">
+                        {groupKey}
+                      </span>
+                      <span className="rounded-full bg-[var(--glass-bg-surface)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--glass-text-secondary)]">
+                        {`${group.ratio}x`}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-4 text-[var(--glass-text-tertiary)]">
+                      {group.desc}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type={visible ? 'text' : 'password'}
+                    value={value}
+                    onChange={(event) => state.updateTempKeyGroup(groupKey, event.target.value)}
+                    placeholder={t('enterApiKey')}
+                    className="glass-input-base flex-1 px-3 py-1.5 text-[12px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => state.toggleKeyGroupVisibility(groupKey)}
+                    className="glass-icon-btn-sm"
+                    title={visible ? t('hide') : t('show')}
+                  >
+                    {visible ? (
+                      <AppIcon name="eye" className="h-4 w-4" />
+                    ) : (
+                      <AppIcon name="eyeOff" className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-3.5 pb-2.5 pt-2">
+          <button
+            type="button"
+            onClick={state.handleCancelKeyGroups}
+            className="glass-btn-base glass-btn-secondary px-3 py-1.5 text-[12px] font-medium"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={state.handleSaveKeyGroups}
+            className="glass-btn-base glass-btn-primary px-3 py-1.5 text-[12px] font-semibold"
+          >
+            {t('save')}
+          </button>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>

@@ -11,6 +11,7 @@ import {
     PRESET_MODELS,
     encodeModelKey,
     getProviderKey,
+    hasProviderApiKey,
     isPresetComingSoonModelKey,
     resolvePresetProviderName,
     type PricingDisplayItem,
@@ -53,6 +54,7 @@ interface UseProvidersReturn {
     flushConfig: () => Promise<void>
     updateProviderHidden: (providerId: string, hidden: boolean) => void
     updateProviderApiKey: (providerId: string, apiKey: string) => void
+    updateProviderApiKeyGroups: (providerId: string, apiKeyGroups: Record<string, string>) => void
     updateProviderBaseUrl: (providerId: string, baseUrl: string) => void
     reorderProviders: (activeProviderId: string, overProviderId: string) => void
     addProvider: (provider: Omit<Provider, 'hasApiKey'>) => void
@@ -85,13 +87,15 @@ export function mergeProvidersForDisplay(
         const matchedPreset = presetProviders.find((presetProvider) => presetProvider.id === providerKey)
         if (matchedPreset) {
             const apiKey = savedProvider.apiKey || ''
+            const apiKeyGroups = savedProvider.apiKeyGroups
             const providerBaseUrl = providerKey === 'minimax'
                 ? matchedPreset.baseUrl
                 : (savedProvider.baseUrl || matchedPreset.baseUrl)
             merged.push({
                 ...matchedPreset,
                 apiKey,
-                hasApiKey: apiKey.length > 0,
+                ...(apiKeyGroups ? { apiKeyGroups } : {}),
+                hasApiKey: hasProviderApiKey({ apiKey, apiKeyGroups }),
                 hidden: savedProvider.hidden === true,
                 baseUrl: providerBaseUrl,
                 apiMode: savedProvider.apiMode,
@@ -103,7 +107,7 @@ export function mergeProvidersForDisplay(
 
         merged.push({
             ...savedProvider,
-            hasApiKey: !!savedProvider.apiKey,
+            hasApiKey: hasProviderApiKey(savedProvider),
         })
     }
 
@@ -112,6 +116,7 @@ export function mergeProvidersForDisplay(
         merged.push({
             ...presetProvider,
             apiKey: '',
+            apiKeyGroups: undefined,
             hasApiKey: false,
             hidden: false,
         })
@@ -235,6 +240,42 @@ function applyPricingDisplay(model: CustomModel, map: PricingDisplayMap): Custom
     }
 }
 
+const EPHEMERAL_PRESET_MODEL_SIGNATURES = new Set(
+    PRESET_MODELS.map((model) => `${getProviderKey(model.provider)}::${model.type}::${model.modelId}`),
+)
+
+function getEphemeralPresetModelSignature(model: Pick<CustomModel, 'provider' | 'type' | 'modelId'>): string {
+    return `${getProviderKey(model.provider)}::${model.type}::${model.modelId}`
+}
+
+export function buildModelsForSave(models: CustomModel[]): CustomModel[] {
+    return models.filter((model) => {
+        if (model.enabled) return true
+        return !EPHEMERAL_PRESET_MODEL_SIGNATURES.has(getEphemeralPresetModelSignature(model))
+    })
+}
+
+export function resolvePresetModelEnabled(input: {
+    presetModelKey: string
+    presetType: CustomModel['type']
+    hasSavedModels: boolean
+    savedModel?: Pick<CustomModel, 'enabled'>
+}): boolean {
+    if (isPresetComingSoonModelKey(input.presetModelKey)) {
+        return false
+    }
+    if (input.presetType === 'lipsync') {
+        return true
+    }
+    if (!input.hasSavedModels) {
+        return false
+    }
+    if (!input.savedModel) {
+        return false
+    }
+    return input.savedModel.enabled !== false
+}
+
 export function useProviders(): UseProvidersReturn {
     const locale = useLocale()
     const t = useTranslations('apiConfig')
@@ -319,13 +360,15 @@ export function useProviders(): UseProvidersReturn {
                 const saved = savedModels.find((m: CustomModel) =>
                     m.modelKey === presetModelKey
                 )
-                const alwaysEnabledPreset = preset.type === 'lipsync'
                 const mergedPreset: CustomModel = {
                     ...preset,
                     modelKey: presetModelKey,
-                    enabled: isPresetComingSoonModelKey(presetModelKey)
-                        ? false
-                        : (hasSavedModels ? (alwaysEnabledPreset || !!saved) : false),
+                    enabled: resolvePresetModelEnabled({
+                        presetModelKey,
+                        presetType: preset.type,
+                        hasSavedModels,
+                        savedModel: saved,
+                    }),
                     price: 0,
                     capabilities: saved?.capabilities ?? preset.capabilities,
                 }
@@ -391,12 +434,11 @@ export function useProviders(): UseProvidersReturn {
             const currentDefaultModels = overrides?.defaultModels ?? latestDefaultModelsRef.current
             const currentWorkflowConcurrency = overrides?.workflowConcurrency ?? latestWorkflowConcurrencyRef.current
             const currentCapabilityDefaults = overrides?.capabilityDefaults ?? latestCapabilityDefaultsRef.current
-            const enabledModels = currentModels.filter(m => m.enabled)
             const res = await apiFetch('/api/user/api-config', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    models: enabledModels,
+                    models: buildModelsForSave(currentModels),
                     providers: currentProviders,
                     defaultModels: currentDefaultModels,
                     workflowConcurrency: currentWorkflowConcurrency,
@@ -540,8 +582,26 @@ export function useProviders(): UseProvidersReturn {
     const updateProviderApiKey = useCallback((providerId: string, apiKey: string) => {
         setProviders(prev => {
             const next = prev.map(p =>
-                p.id === providerId ? { ...p, apiKey, hasApiKey: !!apiKey } : p
+                p.id === providerId
+                    ? { ...p, apiKey, hasApiKey: hasProviderApiKey({ ...p, apiKey }) }
+                    : p
             )
+            latestProvidersRef.current = next
+            void performSave(undefined, true)
+            return next
+        })
+    }, [performSave])
+
+    const updateProviderApiKeyGroups = useCallback((providerId: string, apiKeyGroups: Record<string, string>) => {
+        setProviders((previous) => {
+            const next = previous.map((provider) => {
+                if (provider.id !== providerId) return provider
+                return {
+                    ...provider,
+                    apiKeyGroups,
+                    hasApiKey: hasProviderApiKey({ ...provider, apiKeyGroups }),
+                }
+            })
             latestProvidersRef.current = next
             void performSave(undefined, true)
             return next
@@ -586,7 +646,7 @@ export function useProviders(): UseProvidersReturn {
                 alert(t('providerIdExists'))
                 return prev
             }
-            const newProvider: Provider = { ...provider, hasApiKey: !!provider.apiKey }
+            const newProvider: Provider = { ...provider, hasApiKey: hasProviderApiKey(provider) }
             const next = [...prev, newProvider]
             latestProvidersRef.current = next
 
@@ -776,6 +836,7 @@ export function useProviders(): UseProvidersReturn {
         flushConfig,
         updateProviderHidden,
         updateProviderApiKey,
+        updateProviderApiKeyGroups,
         updateProviderBaseUrl,
         reorderProviders,
         addProvider,

@@ -4,6 +4,9 @@ Split the full text into clip candidates for downstream screenplay conversion.
 Full text:
 {input}
 
+Only segment the Full text section above.
+The library sections below are reference only and must never be treated as clip content.
+
 Location library:
 {locations_lib_name}
 
@@ -31,3 +34,4 @@ Rules:
 4. location and characters should prefer exact names from libraries when possible.
 5. Return JSON only, no markdown or extra text.
 6. ⚠️ JSON SAFETY: All quotation marks in dialogue (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values—they break JSON structure.
+7. Do not create clips for library/reference sections such as Location library, Character library, or Character introductions.

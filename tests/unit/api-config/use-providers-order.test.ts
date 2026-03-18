@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { mergeProvidersForDisplay } from '@/app/[locale]/profile/components/api-config/hooks'
-import type { Provider } from '@/app/[locale]/profile/components/api-config/types'
+import {
+  mergeProvidersForDisplay,
+  resolvePresetModelEnabled,
+} from '@/app/[locale]/profile/components/api-config/hooks'
+import type { CustomModel, Provider } from '@/app/[locale]/profile/components/api-config/types'
 
 describe('useProviders provider order merge', () => {
   it('preserves saved providers order and appends missing presets at the end', () => {
@@ -61,5 +64,24 @@ describe('useProviders provider order merge', () => {
       apiKey: 'mm-key',
       hasApiKey: true,
     })
+  })
+
+  it('keeps preset model disabled when saved config has enabled false', () => {
+    const savedModel: Pick<CustomModel, 'enabled'> = { enabled: false }
+
+    expect(resolvePresetModelEnabled({
+      presetModelKey: 'yescale::gpt-4o',
+      presetType: 'llm',
+      hasSavedModels: true,
+      savedModel,
+    })).toBe(false)
+  })
+
+  it('keeps lipsync preset enabled even when no saved models exist', () => {
+    expect(resolvePresetModelEnabled({
+      presetModelKey: 'fal::fal-ai/kling-video/lipsync/audio-to-video',
+      presetType: 'lipsync',
+      hasSavedModels: false,
+    })).toBe(true)
   })
 })

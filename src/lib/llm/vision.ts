@@ -82,7 +82,7 @@ export async function chatCompletionWithVision(
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
     const attemptStartedAt = Date.now()
     try {
-      const providerConfig = await getProviderConfig(userId, provider)
+      const providerConfig = await getProviderConfig(userId, provider, { modelId: resolvedModelId })
       if (providerKey === 'google' || providerKey === 'gemini-compatible') {
         const ai = new GoogleGenAI({ apiKey: providerConfig.apiKey })
         const { normalizeToBase64ForGeneration } = await import('@/lib/media/outbound-image')

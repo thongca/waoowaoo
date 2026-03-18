@@ -50,4 +50,23 @@ describe('async poll externalId contract', () => {
     expect(parsed.type).toBe('IMAGE')
     expect(parsed.requestId).toBe('task_456')
   })
+
+  it('parses and formats YESCALE externalId', () => {
+    const externalId = formatExternalId('YESCALE', 'VIDEO', 'task_789')
+    expect(externalId).toBe('YESCALE:VIDEO:task_789')
+
+    const parsed = parseExternalId(externalId)
+    expect(parsed.provider).toBe('YESCALE')
+    expect(parsed.type).toBe('VIDEO')
+    expect(parsed.requestId).toBe('task_789')
+  })
+
+  it('parses YESCALE externalId with key group metadata', () => {
+    const parsed = parseExternalId('YESCALE:IMAGE:drawing:task_456')
+
+    expect(parsed.provider).toBe('YESCALE')
+    expect(parsed.type).toBe('IMAGE')
+    expect(parsed.keyGroup).toBe('drawing')
+    expect(parsed.requestId).toBe('task_456')
+  })
 })

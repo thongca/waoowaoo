@@ -24,6 +24,7 @@ const DEFAULT_AUDIO_EXCLUDED_MODEL_IDS = new Set([
 const MODEL_PROVIDER_KEYS = [
   'ark',
   'google',
+  'yescale',
   'bailian',
   'openrouter',
   'minimax',
@@ -50,7 +51,8 @@ function hasProviderApiKey(provider: Provider | undefined): boolean {
   if (!provider) return false
   if (provider.hasApiKey === true) return true
   const apiKey = typeof provider.apiKey === 'string' ? provider.apiKey.trim() : ''
-  return apiKey.length > 0
+  if (apiKey.length > 0) return true
+  return Object.values(provider.apiKeyGroups || {}).some((value) => typeof value === 'string' && value.trim().length > 0)
 }
 
 export function useApiConfigFilters({
