@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const openAIState = vi.hoisted(() => ({
   create: vi.fn(),
+  chatCreate: vi.fn(),
   toFile: vi.fn(async () => ({ name: 'reference-file' })),
 }))
 
@@ -17,6 +18,12 @@ vi.mock('openai', () => ({
   default: class OpenAI {
     videos = {
       create: openAIState.create,
+    }
+
+    chat = {
+      completions: {
+        create: openAIState.chatCreate,
+      },
     }
   },
   toFile: openAIState.toFile,
@@ -89,7 +96,7 @@ describe('OpenAICompatibleVideoGenerator', () => {
       imageUrl: 'https://example.com/seed.png',
       prompt: 'animate',
       options: {
-        modelId: 'veo_3_1-fast-4K',
+        modelId: 'custom-video-model',
       },
     })
 
@@ -99,7 +106,64 @@ describe('OpenAICompatibleVideoGenerator', () => {
     if (!createCall) {
       throw new Error('videos.create should be called')
     }
-    expect((createCall[0] as { model?: string }).model).toBe('veo_3_1-fast-4K')
+    expect((createCall[0] as { model?: string }).model).toBe('custom-video-model')
+  })
+
+  it('uses chat completions streaming for APIflow veo models', async () => {
+    const stream = {
+      async *[Symbol.asyncIterator]() {
+        yield {
+          choices: [
+            {
+              delta: {
+                content: '<video src="https://flow2api.test/video.mp4">',
+              },
+            },
+          ],
+        }
+      },
+      async finalChatCompletion() {
+        return {
+          choices: [
+            {
+              message: {
+                content: '<video src="https://flow2api.test/video.mp4"></video>',
+              },
+            },
+          ],
+        }
+      },
+    }
+    openAIState.chatCreate.mockResolvedValueOnce(stream)
+
+    const generator = new OpenAICompatibleVideoGenerator('openai-compatible:oa-1')
+    const result = await generator.generate({
+      userId: 'user-1',
+      imageUrl: 'https://example.com/seed.png',
+      prompt: 'animate this character',
+      options: {
+        modelId: 'veo_3_1_r2v_fast_portrait',
+      },
+    })
+
+    expect(openAIState.create).not.toHaveBeenCalled()
+    expect(openAIState.chatCreate).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'veo_3_1_r2v_fast_portrait',
+      stream: true,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'animate this character' },
+            { type: 'image_url', image_url: { url: 'data:image/png;base64,QQ==' } },
+          ],
+        },
+      ],
+    }))
+    expect(result).toEqual({
+      success: true,
+      videoUrl: 'https://flow2api.test/video.mp4',
+    })
   })
 
   it('maps 3:2 to landscape size explicitly', async () => {

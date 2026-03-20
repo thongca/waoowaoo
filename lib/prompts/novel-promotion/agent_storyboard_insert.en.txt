@@ -37,5 +37,12 @@ Rules:
 1. Return one object only (not array).
 2. Keep narrative and spatial continuity between previous and next panel.
 3. Use valid character and location names from provided context.
-4. JSON only, no markdown.
-5. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.
+4. The inserted panel should usually be shorter than a full exposition panel unless the transition itself carries an important reveal or emotional shift.
+5. Choose duration based on the gap between the previous and next panel, not as a default value.
+6. If the inserted panel is only a bridge in movement, gaze, spatial continuity, or visual logic, keep it short.
+7. If the inserted panel introduces a meaningful new visual state before the next panel, it may be medium.
+8. Do not make the inserted panel longer than both surrounding panels unless there is a strong dramatic reason.
+9. The inserted panel should smooth narrative rhythm, not slow the sequence unnecessarily.
+10. Avoid using the inserted panel to restate information already obvious in the surrounding panels.
+11. JSON only, no markdown.
+12. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.

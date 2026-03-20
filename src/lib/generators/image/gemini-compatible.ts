@@ -4,6 +4,7 @@ import { getInternalBaseUrl } from '@/lib/env'
 import { getImageBase64Cached } from '@/lib/image-cache'
 import { BaseImageGenerator, type GenerateResult, type ImageGenerateParams } from '../base'
 import { setProxy } from '../../../../lib/prompts/proxy'
+import { resolveFlow2ApiImageRuntimeModelId } from '@/lib/flow2api-model-aliases'
 
 type GeminiCompatibleContentPart = { inlineData: { mimeType: string; data: string } } | { text: string }
 
@@ -45,6 +46,59 @@ async function toInlineData(imageSource: string): Promise<{ mimeType: string; da
   }
 
   return { mimeType: 'image/png', data: imageSource }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' ? value as Record<string, unknown> : null
+}
+
+function readHttpUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+    return null
+  }
+  return normalized
+}
+
+function extractGenerateContentImageResult(response: unknown):
+  | { imageBase64: string; imageUrl: string }
+  | { imageUrl: string }
+  | null {
+  const responseRecord = asRecord(response)
+  const candidates = Array.isArray(responseRecord?.candidates) ? responseRecord.candidates : []
+
+  for (const candidate of candidates) {
+    const content = asRecord(asRecord(candidate)?.content)
+    const parts = Array.isArray(content?.parts) ? content.parts : []
+
+    for (const part of parts) {
+      const partRecord = asRecord(part)
+      const inlineData = asRecord(partRecord?.inlineData)
+      const imageBase64 = typeof inlineData?.data === 'string' ? inlineData.data : ''
+      if (imageBase64) {
+        const mimeType = typeof inlineData?.mimeType === 'string' ? inlineData.mimeType : 'image/png'
+        return {
+          imageBase64,
+          imageUrl: `data:${mimeType};base64,${imageBase64}`,
+        }
+      }
+
+      const fileData = asRecord(partRecord?.fileData)
+      const fileUri = readHttpUrl(fileData?.fileUri)
+      const mimeType = typeof fileData?.mimeType === 'string' ? fileData.mimeType : ''
+      if (fileUri && (!mimeType || mimeType.startsWith('image/'))) {
+        return { imageUrl: fileUri }
+      }
+
+      const textUrl = readHttpUrl(partRecord?.text)
+      if (textUrl) {
+        return { imageUrl: textUrl }
+      }
+    }
+  }
+
+  return null
 }
 
 function assertAllowedOptions(options: Record<string, unknown>) {
@@ -89,6 +143,9 @@ export class GeminiCompatibleImageGenerator extends BaseImageGenerator {
       httpOptions: { baseUrl: providerConfig.baseUrl },
     })
     const normalizedOptions = options as GeminiCompatibleOptions
+    const resolvedModelId = resolveFlow2ApiImageRuntimeModelId(
+      this.modelId || normalizedOptions.modelId || 'gemini-2.5-flash-image',
+    )
     const parts: GeminiCompatibleContentPart[] = []
 
     for (const referenceImage of referenceImages.slice(0, 14)) {
@@ -101,7 +158,7 @@ export class GeminiCompatibleImageGenerator extends BaseImageGenerator {
     parts.push({ text: prompt })
 
     const response = await ai.models.generateContent({
-      model: this.modelId || normalizedOptions.modelId || 'gemini-2.5-flash-image-preview',
+      model: resolvedModelId,
       contents: [{ parts }],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
@@ -122,19 +179,15 @@ export class GeminiCompatibleImageGenerator extends BaseImageGenerator {
       },
     })
 
-    const candidate = response.candidates?.[0]
-    const responseParts = candidate?.content?.parts || []
-    for (const part of responseParts) {
-      if (part.inlineData?.data) {
-        const mimeType = part.inlineData.mimeType || 'image/png'
-        const imageBase64 = part.inlineData.data
-        return {
-          success: true,
-          imageBase64,
-          imageUrl: `data:${mimeType};base64,${imageBase64}`,
-        }
+    const parsedResult = extractGenerateContentImageResult(response)
+    if (parsedResult) {
+      return {
+        success: true,
+        ...parsedResult,
       }
     }
+
+    const candidate = response.candidates?.[0]
 
     const finishReason = candidate?.finishReason
     if (finishReason === 'IMAGE_SAFETY' || finishReason === 'SAFETY') {

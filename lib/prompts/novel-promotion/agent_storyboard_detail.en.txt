@@ -23,7 +23,7 @@ Required fields per panel:
 - shot_type
 - camera_move
 - video_prompt
-- duration (optional)
+- duration (required; preserve the input duration unless there is a strong cinematic reason to adjust it)
 
 Output schema example (field names must be preserved):
 [
@@ -46,5 +46,14 @@ Rules:
 2. Keep source_text semantically aligned with input; do not rewrite story meaning.
 3. video_prompt should be motion-ready and concrete.
 4. Prefer age+gender wording in video_prompt when naming actors in camera directions.
-5. Return JSON array only.
-6. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.
+5. Preserve the input duration for each panel by default.
+6. Do not change duration unless the panel clearly becomes too dense or too thin after refinement.
+7. If duration is already present in the input panel, keep it unless there is a strong cinematic reason to adjust it.
+8. If you adjust duration, keep the change minimal and preserve the same narrative beat.
+9. Do not normalize all panels toward one common duration.
+10. If duration is missing in the input, infer it from the panel's narrative function rather than defaulting to 3 seconds.
+11. Use shorter duration for quick transitions, insert shots, reaction beats, or montage fragments.
+12. Use medium duration for stable explanation, dialogue focus, or one clear visual idea.
+13. Use longer duration only for emotional hold, dense explanation, or a meaningful visual progression.
+14. Return JSON array only.
+15. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.

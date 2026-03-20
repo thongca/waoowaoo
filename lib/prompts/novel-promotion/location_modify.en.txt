@@ -16,6 +16,10 @@ Rules:
 3. Output in English only.
 4. Start with scene name: "[{location_name}] ..."
 5. No protagonist actions, dialogue, or narrative plot.
+6. Preserve country, regional identity, cultural origin, and architectural tradition unless the user explicitly asks to change them.
+7. If the current description or user instruction indicates Vietnamese, Asian, East Asian, Southeast Asian, or another specific setting identity, keep that identity explicit after modification.
+8. Do not rewrite the scene into Western-default architecture, decor, or layout when the intended setting is non-Western.
+9. Preserve historical country and era cues when present, including period-appropriate structures, materials, street layout, furnishings, and decorative elements.
 
 Output format:
 Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:

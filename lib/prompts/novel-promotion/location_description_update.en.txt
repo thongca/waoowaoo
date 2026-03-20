@@ -18,6 +18,10 @@ Rules:
 2. Return one complete updated description in English.
 3. Keep scene name at the beginning: "[{location_name}] ..."
 4. No protagonist actions or story narration.
+5. Preserve country, regional identity, cultural origin, and architectural tradition unless the user explicitly asks to change them.
+6. If the original description or user instruction indicates Vietnamese, Asian, East Asian, Southeast Asian, or another specific setting identity, keep that identity explicit after the update.
+7. Do not drift toward Western-default architecture, decor, or environmental logic when the scene is meant to remain non-Western.
+8. If the scene belongs to a specific historical country or era, preserve period-appropriate architecture, materials, objects, and layout.
 
 Output format:
 Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:

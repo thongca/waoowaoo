@@ -11,6 +11,10 @@ Rules:
 4. Mention lighting direction and atmosphere.
 5. No protagonist actions or dialogue.
 6. If crowd is implied by context, use generic crowd terms only (guests, pedestrians, audience).
+7. If the user specifies a country, region, cultural origin, or architectural tradition, preserve it explicitly in the scene description.
+8. If the user specifies Vietnamese, Asian, East Asian, Southeast Asian, or another non-Western setting, do not default to Western architecture, decor, materials, or spatial logic.
+9. Express cultural identity through concrete visual cues such as building structure, roof form, materials, furniture, ornament, street layout, vegetation, and historically appropriate objects.
+10. If the user specifies a historical culture, country, or era, keep the location aligned to that place and period instead of drifting into generic fantasy or another country's visual language.
 
 Output format:
 Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:

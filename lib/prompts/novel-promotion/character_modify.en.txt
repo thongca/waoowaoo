@@ -14,6 +14,10 @@ Rules:
 4. Output in English only.
 5. Do not describe expression, action, background, scene, or props.
 6. Do not mention skin color, eye color, or lip color.
+7. Preserve nationality, ethnic background, regional identity, and cultural origin unless the user explicitly asks to change them.
+8. If the current description or user instruction indicates Vietnamese, Asian, East Asian, Southeast Asian, or another specific identity, keep that identity explicit after modification.
+9. Do not rewrite the character into Western-default facial or costume language when the intended identity is non-Western.
+10. Preserve historical country and culture cues when present, including culturally appropriate clothing, accessories, and hair styling.
 
 Output format:
 Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:

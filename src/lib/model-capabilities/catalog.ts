@@ -6,6 +6,7 @@ import {
   type ModelCapabilities,
   type UnifiedModelType,
 } from '@/lib/model-config-contract'
+import { resolveFlow2ApiCanonicalModelId } from '@/lib/flow2api-model-aliases'
 
 export interface BuiltinCapabilityCatalogEntry {
   modelType: UnifiedModelType
@@ -172,7 +173,8 @@ export function findBuiltinCapabilityCatalogEntry(
   modelId: string,
 ): BuiltinCapabilityCatalogEntry | null {
   const loaded = loadCatalog()
-  const modelKey = composeModelKey(provider, modelId)
+  const canonicalModelId = resolveFlow2ApiCanonicalModelId(modelType, modelId)
+  const modelKey = composeModelKey(provider, canonicalModelId)
   if (!modelKey) return null
 
   const exactKey = `${modelType}::${modelKey}`
@@ -185,7 +187,7 @@ export function findBuiltinCapabilityCatalogEntry(
   }
 
   const providerKey = getProviderKey(provider)
-  const fallbackKey = `${modelType}::${providerKey}::${modelId}`
+  const fallbackKey = `${modelType}::${providerKey}::${canonicalModelId}`
   const fallback = loaded.byProviderKey.get(fallbackKey)
   if (fallback) {
     return {
@@ -197,7 +199,7 @@ export function findBuiltinCapabilityCatalogEntry(
   // Fallback: check canonical provider alias (e.g. gemini-compatible → google)
   const aliasTarget = CAPABILITY_PROVIDER_ALIASES[providerKey]
   if (aliasTarget) {
-    const aliasKey = `${modelType}::${aliasTarget}::${modelId}`
+    const aliasKey = `${modelType}::${aliasTarget}::${canonicalModelId}`
     const aliasMatch = loaded.byProviderKey.get(aliasKey)
     if (aliasMatch) {
       return {

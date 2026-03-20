@@ -4,8 +4,9 @@
 
 import { GoogleGenAI } from '@google/genai'
 import { BaseVideoGenerator, VideoGenerateParams, GenerateResult } from '../base'
-import { getProviderConfig } from '@/lib/api-config'
+import { getProviderConfig, getProviderKey } from '@/lib/api-config'
 import { normalizeToBase64ForGeneration } from '@/lib/media/outbound-image'
+import { resolveFlow2ApiVideoRuntimeModelId } from '@/lib/flow2api-model-aliases'
 
 interface GoogleVeoOptions {
     modelId?: string
@@ -23,6 +24,14 @@ function dataUrlToInlineData(dataUrl: string): { mimeType: string; imageBytes: s
     return { mimeType, imageBytes }
 }
 
+function dataUrlToPart(dataUrl: string): { inlineData: { mimeType: string; data: string } } | null {
+    const base64Start = dataUrl.indexOf(';base64,')
+    if (base64Start === -1) return null
+    const mimeType = dataUrl.substring(5, base64Start)
+    const data = dataUrl.substring(base64Start + 8)
+    return { inlineData: { mimeType, data } }
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
     return value && typeof value === 'object' ? (value as Record<string, unknown>) : null
 }
@@ -38,6 +47,34 @@ function extractOperationName(response: unknown): string | null {
     return null
 }
 
+function encodeProviderToken(providerId: string): string {
+    return Buffer.from(providerId, 'utf8').toString('base64url')
+}
+
+function extractGenerateContentVideoUrl(response: unknown): string | null {
+    const obj = asRecord(response)
+    const candidates = Array.isArray(obj?.candidates) ? obj.candidates : []
+    for (const candidateRaw of candidates) {
+        const candidate = asRecord(candidateRaw)
+        const content = asRecord(candidate?.content)
+        const parts = Array.isArray(content?.parts) ? content.parts : []
+        for (const partRaw of parts) {
+            const part = asRecord(partRaw)
+            const fileData = asRecord(part?.fileData)
+            if (typeof fileData?.fileUri === 'string' && fileData.fileUri.trim()) {
+                return fileData.fileUri.trim()
+            }
+            if (typeof part?.text === 'string') {
+                const match = part.text.match(/<video[^>]+src=['\"]([^'\"]+)['\"]/i)
+                if (match?.[1]) {
+                    return match[1]
+                }
+            }
+        }
+    }
+    return null
+}
+
 export class GoogleVeoVideoGenerator extends BaseVideoGenerator {
     private providerId: string
 
@@ -49,9 +86,6 @@ export class GoogleVeoVideoGenerator extends BaseVideoGenerator {
     protected async doGenerate(params: VideoGenerateParams): Promise<GenerateResult> {
         const { userId, imageUrl, prompt = '', options = {} } = params
 
-        const { apiKey } = await getProviderConfig(userId, this.providerId)
-        const ai = new GoogleGenAI({ apiKey })
-
         const {
             modelId = 'veo-3.1-generate-preview',
             aspectRatio,
@@ -59,6 +93,13 @@ export class GoogleVeoVideoGenerator extends BaseVideoGenerator {
             duration,
             lastFrameImageUrl,
         } = options as GoogleVeoOptions
+
+        const providerConfig = await getProviderConfig(userId, this.providerId, { modelId })
+        const providerKey = getProviderKey(this.providerId).toLowerCase()
+        const ai = new GoogleGenAI({
+            apiKey: providerConfig.apiKey,
+            ...(providerConfig.baseUrl ? { httpOptions: { baseUrl: providerConfig.baseUrl } } : {}),
+        })
 
         const allowedOptionKeys = new Set([
             'provider',
@@ -73,6 +114,52 @@ export class GoogleVeoVideoGenerator extends BaseVideoGenerator {
             if (value === undefined) continue
             if (!allowedOptionKeys.has(key)) {
                 throw new Error(`GOOGLE_VIDEO_OPTION_UNSUPPORTED: ${key}`)
+            }
+        }
+
+        if (providerKey === 'gemini-compatible') {
+            const contentsParts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = []
+            if (prompt.trim().length > 0) {
+                contentsParts.push({ text: prompt })
+            }
+            if (imageUrl) {
+                const dataUrl = imageUrl.startsWith('data:') ? imageUrl : await normalizeToBase64ForGeneration(imageUrl)
+                const part = dataUrlToPart(dataUrl)
+                if (part) {
+                    contentsParts.push(part)
+                }
+            }
+            if (lastFrameImageUrl) {
+                const dataUrl = lastFrameImageUrl.startsWith('data:')
+                    ? lastFrameImageUrl
+                    : await normalizeToBase64ForGeneration(lastFrameImageUrl)
+                const part = dataUrlToPart(dataUrl)
+                if (!part) {
+                    throw new Error('FLOW2API_VIDEO_LAST_FRAME_INVALID')
+                }
+                contentsParts.push(part)
+            }
+            if (contentsParts.length === 0) {
+                throw new Error('FLOW2API_VIDEO_PROMPT_OR_IMAGE_REQUIRED')
+            }
+
+            const response = await ai.models.generateContent({
+                model: resolveFlow2ApiVideoRuntimeModelId(modelId),
+                contents: [{ parts: contentsParts }],
+                config: {
+                    responseModalities: ['VIDEO'],
+                    ...(aspectRatio ? { aspectRatio } : {}),
+                    ...(resolution ? { resolution } : {}),
+                    ...(typeof duration === 'number' ? { durationSeconds: duration } : {}),
+                },
+            })
+            const videoUrl = extractGenerateContentVideoUrl(response)
+            if (!videoUrl) {
+                throw new Error('FLOW2API_VIDEO_EMPTY_RESPONSE: no video url returned')
+            }
+            return {
+                success: true,
+                videoUrl,
             }
         }
 
@@ -130,7 +217,9 @@ export class GoogleVeoVideoGenerator extends BaseVideoGenerator {
             success: true,
             async: true,
             requestId: operationName,
-            externalId: `GOOGLE:VIDEO:${operationName}`
+            externalId: this.providerId && this.providerId !== 'google'
+                ? `GOOGLE:VIDEO:${encodeProviderToken(this.providerId)}:${operationName}`
+                : `GOOGLE:VIDEO:${operationName}`
         }
     }
 }

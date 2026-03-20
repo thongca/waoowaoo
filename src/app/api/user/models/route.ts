@@ -18,6 +18,7 @@ import {
 } from '@/lib/model-config-contract'
 import { findBuiltinCapabilities } from '@/lib/model-capabilities/catalog'
 import { findBuiltinPricingCatalogEntry } from '@/lib/model-pricing/catalog'
+import { formatFlow2ApiDisplayLabel } from '@/lib/flow2api-model-aliases'
 import type { VideoPricingTier } from '@/lib/model-pricing/video-tier'
 
 type StoredModelType = UnifiedModelType | string
@@ -96,8 +97,18 @@ function toModelId(model: StoredModel): string {
 }
 
 function toDisplayLabel(model: StoredModel, fallbackModelId: string): string {
-  if (typeof model.name === 'string' && model.name.trim()) return model.name.trim()
-  return fallbackModelId
+  const type = isUnifiedModelType(model.type) ? model.type : 'llm'
+  const providerId = toProvider(model) || ''
+  const baseLabel = typeof model.name === 'string' && model.name.trim()
+    ? model.name.trim()
+    : fallbackModelId
+
+  return formatFlow2ApiDisplayLabel({
+    modelType: type,
+    providerId,
+    modelId: fallbackModelId,
+    label: baseLabel,
+  })
 }
 
 function dedupeByModelKey(items: UserModelOption[]): UserModelOption[] {

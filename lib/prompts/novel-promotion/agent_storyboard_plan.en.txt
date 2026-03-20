@@ -24,6 +24,7 @@ Clip content:
 
 Task:
 Create a coherent panel plan that covers the full clip content in chronological order.
+Duration is required for every panel and must be chosen intentionally based on beat function and pacing.
 
 Output format (JSON array only):
 [
@@ -49,5 +50,15 @@ Planning rules:
 3. Keep panel transitions smooth and logically continuous.
 4. Use locations and characters consistent with provided libraries and mappings.
 5. Prefer concrete, visible actions over abstract wording.
-6. Return strict JSON only.
-7. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.
+6. The `duration` value shown in the example is illustrative only. Do not treat 3 seconds as a default.
+7. Duration is required for every panel.
+8. Choose duration based on narrative beat density, not by habit.
+9. Use shorter duration for quick reactions, inserts, cutaways, montage fragments, or brief transitions.
+10. Use medium duration for one complete explanatory beat, one stable action beat, or one clear visual idea.
+11. Use longer duration only when the panel must hold dense explanation, emotional emphasis, transformation, or a complex visual progression.
+12. Do not assign the same duration to every panel unless the clip truly has uniform pacing.
+13. If several adjacent ideas belong to the same visual purpose, merge them into one panel and give that merged panel an appropriate duration instead of splitting them into many short panels.
+14. In list, montage, or checklist clips, do not create one panel per listed item unless each item truly needs distinct visual emphasis.
+15. In hook or CTA clips, prefer fewer, stronger panels with clear duration contrast instead of many evenly timed panels.
+16. Return strict JSON only.
+17. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.

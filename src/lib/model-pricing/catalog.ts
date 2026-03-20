@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { type CapabilityValue } from '@/lib/model-config-contract'
+import { resolveFlow2ApiCanonicalModelId } from '@/lib/flow2api-model-aliases'
 
 export type PricingApiType =
   | 'text'
@@ -229,15 +230,19 @@ export function findBuiltinPricingCatalogEntry(
   modelId: string,
 ): BuiltinPricingCatalogEntry | null {
   const loaded = loadPricingCatalog()
+  const normalizedApiType = apiType === 'image' || apiType === 'video'
+    ? apiType
+    : apiType
+  const canonicalModelId = resolveFlow2ApiCanonicalModelId(normalizedApiType, modelId)
 
-  const exactKey = `${apiType}::${provider}::${modelId}`
+  const exactKey = `${apiType}::${provider}::${canonicalModelId}`
   const entry = loaded.exact.get(exactKey)
   if (entry) return cloneEntry(entry)
 
   // Strip composite suffix (e.g. 'gemini-compatible:uuid' → 'gemini-compatible')
   const providerKey = provider.includes(':') ? provider.slice(0, provider.indexOf(':')) : provider
   if (providerKey !== provider) {
-    const keyWithProviderKey = `${apiType}::${providerKey}::${modelId}`
+    const keyWithProviderKey = `${apiType}::${providerKey}::${canonicalModelId}`
     const keyEntry = loaded.exact.get(keyWithProviderKey)
     if (keyEntry) return cloneEntry(keyEntry)
   }
@@ -245,7 +250,7 @@ export function findBuiltinPricingCatalogEntry(
   // Alias fallback: look up the canonical provider
   const aliasTarget = PROVIDER_ALIASES[providerKey]
   if (aliasTarget) {
-    const aliasKey = `${apiType}::${aliasTarget}::${modelId}`
+    const aliasKey = `${apiType}::${aliasTarget}::${canonicalModelId}`
     const aliasEntry = loaded.exact.get(aliasKey)
     if (aliasEntry) return cloneEntry(aliasEntry)
   }

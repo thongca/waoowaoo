@@ -1,8 +1,9 @@
 import { normalizeToBase64ForGeneration } from '@/lib/media/outbound-image'
 import type { GenerateResult } from '@/lib/generators/base'
 import type { OpenAICompatVideoRequest } from '../types'
-import { createOpenAICompatClient, parseDataUrl, resolveOpenAICompatClientConfig } from './common'
+import { createOpenAICompatClient, parseDataUrl, readStringOption, resolveOpenAICompatClientConfig } from './common'
 import { toFile } from 'openai'
+import { collectTextValue, extractStreamDeltaParts } from '@/lib/llm/utils'
 
 type OpenAIVideoSize = '720x1280' | '1280x720' | '1024x1792' | '1792x1024'
 type OpenAIVideoSeconds = '4' | '8' | '12'
@@ -135,6 +136,104 @@ function encodeProviderId(providerId: string): string {
   return Buffer.from(providerId, 'utf8').toString('base64url')
 }
 
+function shouldPreferChatCompletionsVideo(modelId: string): boolean {
+  return /^veo_/i.test(modelId)
+}
+
+function extractVideoUrlFromText(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  const videoTagMatch = trimmed.match(/<video[^>]+src=['"]([^'"]+)['"]/i)
+  if (videoTagMatch?.[1]) {
+    return videoTagMatch[1].trim()
+  }
+
+  const mediaUrlMatch = trimmed.match(/https?:\/\/[^\s'"<>]+\.(mp4|webm|mov)(?:\?[^\s'"<>]*)?/i)
+  if (mediaUrlMatch?.[0]) {
+    return mediaUrlMatch[0].trim()
+  }
+
+  const genericUrlMatch = trimmed.match(/https?:\/\/[^\s'"<>]+/i)
+  if (genericUrlMatch?.[0]) {
+    return genericUrlMatch[0].trim()
+  }
+
+  return null
+}
+
+async function toChatCompletionImageUrlPart(imageUrl: string): Promise<{ type: 'image_url'; image_url: { url: string } }> {
+  const dataUrl = imageUrl.startsWith('data:') ? imageUrl : await normalizeToBase64ForGeneration(imageUrl)
+  return {
+    type: 'image_url',
+    image_url: {
+      url: dataUrl,
+    },
+  }
+}
+
+async function generateVideoViaChatCompletionsStream(input: {
+  config: Awaited<ReturnType<typeof resolveOpenAICompatClientConfig>>
+  modelId: string
+  prompt: string
+  imageUrl: string
+  lastFrameImageUrl?: string
+}): Promise<GenerateResult> {
+  const client = createOpenAICompatClient(input.config)
+  const content: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }> = [
+    { type: 'text', text: input.prompt },
+    await toChatCompletionImageUrlPart(input.imageUrl),
+  ]
+
+  if (input.lastFrameImageUrl) {
+    content.push(await toChatCompletionImageUrlPart(input.lastFrameImageUrl))
+  }
+
+  const stream = await client.chat.completions.create({
+    model: input.modelId,
+    messages: [
+      {
+        role: 'user',
+        content,
+      },
+    ],
+    stream: true,
+  } as never)
+  const streamIterable = stream as unknown as AsyncIterable<unknown>
+  const streamWithFinalizer = stream as unknown as AsyncIterable<unknown> & {
+    finalChatCompletion?: () => Promise<{ choices?: Array<{ message?: { content?: unknown } }> }>
+  }
+
+  let streamedText = ''
+  for await (const part of streamIterable) {
+    const { textDelta } = extractStreamDeltaParts(part)
+    if (textDelta) {
+      streamedText += textDelta
+    }
+  }
+
+  let finalContent = ''
+  const finalChatCompletion = streamWithFinalizer.finalChatCompletion
+  if (typeof finalChatCompletion === 'function') {
+    try {
+      const completion = await finalChatCompletion.call(streamWithFinalizer)
+      finalContent = collectTextValue(completion.choices?.[0]?.message?.content)
+    } catch {
+      finalContent = ''
+    }
+  }
+
+  const videoUrl = extractVideoUrlFromText(`${streamedText}\n${finalContent}`)
+  if (!videoUrl) {
+    throw new Error('OPENAI_COMPAT_VIDEO_CHAT_COMPLETIONS_EMPTY_RESPONSE')
+  }
+
+  return {
+    success: true,
+    videoUrl,
+  }
+}
+
 async function toUploadFileFromImageUrl(imageUrl: string): Promise<File> {
   const base64DataUrl = imageUrl.startsWith('data:') ? imageUrl : await normalizeToBase64ForGeneration(imageUrl)
   const parsed = parseDataUrl(base64DataUrl)
@@ -165,6 +264,18 @@ export async function generateVideoViaOpenAICompat(request: OpenAICompatVideoReq
   const trimmedPrompt = prompt.trim()
   if (!trimmedPrompt) {
     throw new Error('OPENAI_COMPAT_VIDEO_PROMPT_REQUIRED')
+  }
+
+  const lastFrameImageUrl = readStringOption(options.lastFrameImageUrl, 'lastFrameImageUrl')
+
+  if (shouldPreferChatCompletionsVideo(selectedModelId)) {
+    return await generateVideoViaChatCompletionsStream({
+      config,
+      modelId: selectedModelId,
+      prompt: trimmedPrompt,
+      imageUrl,
+      ...(lastFrameImageUrl ? { lastFrameImageUrl } : {}),
+    })
   }
 
   const inputReference = await toUploadFileFromImageUrl(imageUrl)

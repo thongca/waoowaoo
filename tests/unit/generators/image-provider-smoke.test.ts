@@ -186,7 +186,7 @@ describe('image provider smoke tests', () => {
       ],
     })
 
-    const generator = new GeminiCompatibleImageGenerator('gemini-2.5-flash-image-preview', 'gemini-compatible:gm-1')
+    const generator = new GeminiCompatibleImageGenerator('gemini-3-pro-image-preview', 'gemini-compatible:gm-1')
     const result = await generator.generate({
       userId: 'user-1',
       prompt: 'draw a cat',
@@ -201,7 +201,7 @@ describe('image provider smoke tests', () => {
       imageUrl: 'data:image/webp;base64,R01fVEVYVA==',
     })
     expect(googleGenerateContentMock).toHaveBeenCalledWith({
-      model: 'gemini-2.5-flash-image-preview',
+      model: 'gemini-3.0-pro-image',
       contents: [{ parts: [{ text: 'draw a cat' }] }],
       config: expect.objectContaining({
         responseModalities: ['TEXT', 'IMAGE'],
@@ -260,5 +260,43 @@ describe('image provider smoke tests', () => {
     expect(content.contents[0].parts[0].inlineData).toEqual({ mimeType: 'image/png', data: 'UkVG' })
     expect(content.contents[0].parts[1].text).toBe('restyle this portrait')
     expect(content.config.imageConfig).toEqual({ imageSize: '2K' })
+  })
+
+  it('Gemini 兼容层支持 flow2api fileData 图片响应', async () => {
+    getProviderConfigMock.mockResolvedValueOnce({
+      id: 'gemini-compatible:gm-1',
+      apiKey: 'gm-key',
+      baseUrl: 'https://gm.test',
+    })
+    googleGenerateContentMock.mockResolvedValueOnce({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                fileData: {
+                  mimeType: 'image/png',
+                  fileUri: 'https://flow2api.test/generated-image.png',
+                },
+              },
+              {
+                text: 'https://flow2api.test/generated-image.png',
+              },
+            ],
+          },
+        },
+      ],
+    })
+
+    const generator = new GeminiCompatibleImageGenerator('gemini-3-pro-image-preview', 'gemini-compatible:gm-1')
+    const result = await generator.generate({
+      userId: 'user-1',
+      prompt: 'draw a kite',
+    })
+
+    expect(result).toEqual({
+      success: true,
+      imageUrl: 'https://flow2api.test/generated-image.png',
+    })
   })
 })
