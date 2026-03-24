@@ -326,6 +326,9 @@ Character appearance list (for selecting appearance):
 Full character descriptions (reference):
 {characters_full_description}
 
+Prop descriptions:
+{props_description}
+
 Clip info:
 {clip_json}
 

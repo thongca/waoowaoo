@@ -116,6 +116,9 @@ Scene descriptions:
 Character info:
 {characters_info}
 
+Prop info:
+{props_description}
+
 [Strict Requirements]
 
 1. Return JSON array only, no markdown code fences
