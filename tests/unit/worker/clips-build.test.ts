@@ -61,6 +61,16 @@ vi.mock('@/lib/novel-promotion/story-to-script/clip-matching', () => ({
       }
     },
   }),
+  createTextMarkerMatcher: (content: string) => ({
+    matchMarker: (marker: string, fromIndex = 0) => {
+      const startIndex = content.indexOf(marker, fromIndex)
+      if (startIndex === -1) return null
+      return {
+        startIndex,
+        endIndex: startIndex + marker.length,
+      }
+    },
+  }),
 }))
 
 import { handleClipsBuildTask } from '@/lib/workers/handlers/clips-build'
@@ -143,7 +153,7 @@ describe('worker clips-build behavior', () => {
     })
   })
 
-  it('AI boundaries cannot be matched -> explicit boundary error', async () => {
+  it('falls back to remaining content when first clip boundaries cannot be matched exactly', async () => {
     llmMock.getCompletionContent.mockReturnValue(
       JSON.stringify([
         {
@@ -155,7 +165,23 @@ describe('worker clips-build behavior', () => {
     )
 
     const job = buildJob({ episodeId: 'episode-1' })
-    await expect(handleClipsBuildTask(job)).rejects.toThrow('split_clips boundary matching failed')
+    await expect(handleClipsBuildTask(job)).resolves.toEqual({
+      episodeId: 'episode-1',
+      count: 1,
+    })
+
+    expect(prismaMock.novelPromotionClip.create).toHaveBeenCalledWith({
+      data: {
+        episodeId: 'episode-1',
+        startText: 'NOT_FOUND_START',
+        endText: 'NOT_FOUND_END',
+        summary: 'bad clip',
+        location: null,
+        characters: null,
+        content: 'A START one END B START two END C',
+      },
+      select: { id: true },
+    })
   })
 
   it('ignores trailing reference-only clip after source content is fully covered', async () => {
