@@ -27,11 +27,18 @@
     "selectModel": "选择模型",
     "paramConfig": "参数配置",
     "capability": {
+        "aspectRatio": "画面比例",
+        "imageSize": "图片尺寸",
+        "generationMode": "生成模式",
         "resolution": "画面比例",
         "google_search": "Google 搜索",
         "thinking": "思考强度",
         "voice": "音色",
         "rate": "语速"
+    },
+    "generationMode": {
+        "t2v": "文生视频",
+        "i2v": "图生视频"
     },
     "capabilityOption": {
         "voice": {

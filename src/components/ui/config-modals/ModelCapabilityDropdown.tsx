@@ -202,7 +202,7 @@ export function ModelCapabilityDropdown({
     }
 
     const selectedModel = models.find((m) => m.value === value)
-    const visibleCapabilityFields = capabilityFields.filter((field) => field.field !== 'generationMode')
+    const visibleCapabilityFields = capabilityFields
 
     const resolveCapabilityLabel = useCallback((field: CapabilityFieldDefinition): string => {
         if (field.labelKey) {

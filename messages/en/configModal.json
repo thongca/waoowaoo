@@ -27,11 +27,18 @@
     "selectModel": "Select Model",
     "paramConfig": "Parameters",
     "capability": {
+        "aspectRatio": "Aspect Ratio",
+        "imageSize": "Image Size",
+        "generationMode": "Generation Mode",
         "resolution": "Aspect Ratio",
         "google_search": "Google Search",
         "thinking": "Thinking",
         "voice": "Voice",
         "rate": "Speech Rate"
+    },
+    "generationMode": {
+        "t2v": "Text to video",
+        "i2v": "Image to video"
     },
     "capabilityOption": {
         "voice": {
