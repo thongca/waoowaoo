@@ -5,7 +5,7 @@ import path from 'node:path'
 const CAPABILITY_NAMESPACES = new Set(['llm', 'image', 'video', 'audio', 'lipsync'])
 const CAPABILITY_NAMESPACE_ALLOWED_FIELDS = {
   llm: new Set(['reasoningEffortOptions', 'fieldI18n']),
-  image: new Set(['resolutionOptions', 'fieldI18n']),
+  image: new Set(['resolutionOptions', 'imageSizeOptions', 'google_searchOptions', 'thinkingOptions', 'fieldI18n']),
   video: new Set([
     'generationModeOptions',
     'generateAudioOptions',
@@ -21,7 +21,12 @@ const CAPABILITY_NAMESPACE_ALLOWED_FIELDS = {
 }
 const CAPABILITY_NAMESPACE_I18N_FIELDS = {
   llm: { reasoningEffort: 'reasoningEffortOptions' },
-  image: { resolution: 'resolutionOptions' },
+  image: {
+    resolution: 'resolutionOptions',
+    imageSize: 'imageSizeOptions',
+    google_search: 'google_searchOptions',
+    thinking: 'thinkingOptions',
+  },
   video: {
     generationMode: 'generationModeOptions',
     generateAudio: 'generateAudioOptions',
@@ -194,6 +199,15 @@ function validateCapabilitiesForModelType(issues, file, index, modelType, capabi
       validateAllowedFields(issues, file, index, 'image', image)
       if (image.resolutionOptions !== undefined && !isStringArray(image.resolutionOptions)) {
         pushIssue(issues, file, index, 'capabilities.image.resolutionOptions', 'must be string array')
+      }
+      if (image.imageSizeOptions !== undefined && !isStringArray(image.imageSizeOptions)) {
+        pushIssue(issues, file, index, 'capabilities.image.imageSizeOptions', 'must be string array')
+      }
+      if (image.google_searchOptions !== undefined && !isStringArray(image.google_searchOptions)) {
+        pushIssue(issues, file, index, 'capabilities.image.google_searchOptions', 'must be string array')
+      }
+      if (image.thinkingOptions !== undefined && !isStringArray(image.thinkingOptions)) {
+        pushIssue(issues, file, index, 'capabilities.image.thinkingOptions', 'must be string array')
       }
       validateFieldI18nMap(issues, file, index, 'image', image)
     }

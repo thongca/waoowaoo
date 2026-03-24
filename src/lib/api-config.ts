@@ -108,7 +108,8 @@ function normalizeProviderBaseUrl(providerId: string, rawBaseUrl?: string): stri
 
   const baseUrl = readTrimmedString(rawBaseUrl)
   if (!baseUrl) return undefined
-  if (providerKey !== 'openai-compatible') return baseUrl
+  const shouldAppendV1 = providerKey === 'openai-compatible' || providerKey === 'flow2api'
+  if (!shouldAppendV1) return baseUrl
 
   try {
     const parsed = new URL(baseUrl)
@@ -241,7 +242,7 @@ function parseCustomProviders(rawProviders: string | null | undefined): CustomPr
     } else if (providerKey === 'yescale' && gatewayRouteRaw === 'official') {
       throw new Error(`PROVIDER_GATEWAY_ROUTE_INVALID: providers[${index}].gatewayRoute`)
     } else if (providerKey !== 'openai-compatible' && gatewayRouteRaw === 'openai-compat') {
-      if (providerKey !== 'yescale') {
+      if (providerKey !== 'yescale' && providerKey !== 'flow2api') {
         throw new Error(`PROVIDER_GATEWAY_ROUTE_INVALID: providers[${index}].gatewayRoute`)
       }
     } else {

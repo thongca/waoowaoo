@@ -105,6 +105,21 @@ export async function generateImage(
             },
         })
     }
+    if (providerKey === 'flow2api') {
+        const { referenceImages, ...generatorOptions } = options || {}
+        const generator = createImageGenerator(selection.provider, selection.modelId)
+        return await generator.generate({
+            userId,
+            prompt,
+            referenceImages,
+            options: {
+                ...generatorOptions,
+                provider: selection.provider,
+                modelId: selection.modelId,
+                modelKey: selection.modelKey,
+            },
+        })
+    }
     const providerConfig = await getProviderConfig(userId, selection.provider, { modelId: selection.modelId })
     const defaultGatewayRoute = resolveModelGatewayRoute(selection.provider)
     let gatewayRoute = OFFICIAL_ONLY_PROVIDER_KEYS.has(providerKey)
@@ -236,6 +251,21 @@ export async function generateVideo(
         })
     }
     if (providerKey === 'yescale') {
+        const { prompt, ...providerOptions } = options || {}
+        const generator = createVideoGenerator(selection.provider)
+        return await generator.generate({
+            userId,
+            imageUrl,
+            prompt,
+            options: {
+                ...providerOptions,
+                provider: selection.provider,
+                modelId: selection.modelId,
+                modelKey: selection.modelKey,
+            },
+        })
+    }
+    if (providerKey === 'flow2api') {
         const { prompt, ...providerOptions } = options || {}
         const generator = createVideoGenerator(selection.provider)
         return await generator.generate({

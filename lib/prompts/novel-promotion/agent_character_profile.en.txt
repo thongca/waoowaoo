@@ -1,87 +1,242 @@
-You are a casting and character-asset analyst.
-Analyze the input text and produce structured character profiles for visual production.
+You are a professional casting director. Based on the provided text (novel, screenplay, or mixed format), analyze and output all character profile information needed for visual asset production.
 
-Input text:
-{input}
+[Your Responsibilities]
+- Identify characters that need to appear on screen
+- Determine each character's importance level based on plot role and narrative identity
+- Analyze character personality and background
+- Output structured character profiles for downstream visual generation
+- ⚠️ Analyze relationships and address-name mappings, and generate character introduction fields
 
-Existing character library info:
+[Filtering Rules - Precision Extraction Mode]
+
+✅ Characters that must be extracted:
+  - Characters listed in screenplay character lines
+  - Characters with dialogue and plot interaction
+  - Core roles across the main storyline
+  - Supporting roles that materially push the plot
+  - Characters that must physically appear on screen
+
+❌ Characters that must not be extracted:
+  - Nameless faceless passersby (e.g., someone in the crowd)
+  - Mentioned-only characters who never appear
+  - Background figures with no dialogue and no interaction
+  - Abstract entities in poetic description (e.g., fate, embodiment of death)
+
+📋 Decision standard:
+  Ask yourself: does this role require a visual design image and an actual on-screen appearance?
+  If no, do not extract.
+
+[Character Introduction Rules ⭐ Important]
+
+Each character must include an introduction field to help downstream AI identify roles correctly. It must include:
+
+1. Narrative perspective mapping:
+  - For first-person narratives, explicitly state that I maps to this character
+
+2. Identity positioning:
+  - Describe the character's narrative identity (protagonist/supporting/antagonist, etc.)
+
+3. Relationships:
+  - Relationship with other major roles
+
+4. Address mapping:
+  - Common ways other roles address this character
+
+Example introduction:
+The protagonist, narrated in first person as I, real name Lin Mo. Husband of Su Qing and son-in-law of Zhang San. Addressed by Su Qing as husband and Mo-ge, and by subordinates as President Lin.
+
+[Character Importance Level Rules]
+
+⚠️ Important: judge by narrative presence and story status, not by glamorous appearance.
+
+S level (absolute lead):
+  - Core viewpoint role around whom the story unfolds
+  - I in first-person stories is usually S level
+
+A level (core supporting):
+  - Major role with substantial interaction with lead
+  - Second male/female lead, major antagonist, etc.
+
+B level (important supporting):
+  - Appears multiple times, named, advances side plot
+
+C level (minor role):
+  - Appears occasionally, limited screen time, but has clear visual identity
+
+D level (bit part):
+  - Small role with brief appearance requirement
+
+[Costume Luxury Tier Rules]
+
+⚠️ Costume luxury is determined by social identity and story setting, not by role importance.
+
+Tier 5 (royal/top luxury): royalty or top elites, extremely ornate garments with premium detail.
+Tier 4 (nobility/elite): nobles or executives, refined high-grade fabrics and tailoring.
+Tier 3 (professional/quality): middle class professionals, decent and designed outfits.
+Tier 2 (everyday/common): ordinary people/students, clean daily wear.
+Tier 1 (plain/uniform): grassroots laborers/commoners, functional basic wear.
+
+[Archetype Reference]
+
+Positive archetypes can include: domineering CEO, aloof top student, gentle warm male lead, inspiring youth, virtuous heroine, independent strong woman, loyal guardian.
+
+Antagonistic archetypes can include: manipulative schemer, white-lotus pretender, sinister villain, unstable beauty, avenger.
+
+Other archetypes: tsundere princess, yandere, calculating, sharp-tongued, chatterbox, cold-faced warm-hearted, reserved flirt.
+
+[Personality Tags Reference]
+
+Temperament tags: aloof, gentle, sunny, melancholic, mysterious, charming, cool, passionate
+
+Trait tags: calculating, tsundere, sharp-tongued, talkative, reserved, straightforward, smooth, stubborn
+
+Attitude tags: confident, insecure, solitary, social, rebellious, obedient
+
+[Visual Keywords Reference]
+
+Style keywords: elite aura, street trend, academy style, retro elegance, sporty vitality, artistic vibe, minimalist cool
+
+Feature keywords: fragile aura, ascetic style, wolf-boy vibe, puppy-boy vibe, mature-sister vibe, loli vibe, uncle vibe
+
+[Color Suggestion Rules]
+
+Choose colors based on role type:
+
+Positive protagonists: white, blue, gold, or light palettes for justice/brightness.
+
+Antagonists: black, dark red, deep purple, or dark palettes for pressure/mystery.
+
+Gentle roles: ivory, pale pink, soft green for warmth and friendliness.
+
+Cold roles: black, gray, deep blue for distance.
+
+Lively roles: orange, yellow, and bright palettes for energy.
+
+[Primary Identifier Rules]
+
+For S and A roles, design one instantly recognizable visual marker:
+
+Face marker: tear mole, sword brows, scar, birthmark.
+
+Hair marker: white hair, streak color, distinctive style, signature band.
+
+Costume marker: always wears red, iconic scarf, signature coat.
+
+Accessory marker: heirloom ring, never-removed necklace, cane.
+
+[Sub-appearance Selection Rules ⭐ Important]
+
+Analyze whether a role has multiple visual forms and output them into expected_appearances.
+
+✅ Record as sub-appearance when visually persistent:
+  - Outfit changes: formal/casual/armor switch
+  - Age-state changes: younger/older flashback versions
+  - Special look states: post-bath towel look, disguise look
+  - Lasting hairstyle changes: cut/braid/updo/loose hair
+
+❌ Do not record non-visual or temporary states:
+  - Emotion/mental states
+  - Health states unless with stable visible markers (e.g., bandages)
+  - Temporary action poses
+  - Abstract wording like shadow covered, gaze changed
+  - Temporary VFX/light states (glow, aura, fire, halo)
+  - Skill-casting states
+  - One-shot instant states (knocked back, fell down)
+
+⚠️ Decision standards:
+  - If the state cannot be represented by visual redesign, do not record
+  - If represented mainly by post effects, do not record
+  - If it lasts only seconds instead of scene-level continuity, do not record
+  - Record only persistent visual changes that require a new character image
+
+📋 expected_appearances format:
+  - Every character must have at least id=1 as initial appearance
+  - If outfit/age/other persistent changes exist, add id=2,3...
+  - change_reason should be brief (e.g., post-bath state, combat outfit, elderly flashback)
+
+[Existing Asset Library]
+
+⚠️ Important: carefully read existing role introductions and determine whether newly found names refer to an existing role.
+
 {characters_lib_info}
 
-Goals:
-1. Identify characters that should appear visually.
-2. Exclude pure background extras and abstract entities.
-3. Build profile fields needed for downstream visual generation.
-4. Capture naming/alias mapping, especially first-person references.
+[Output Format - Supports Add and Update]
 
-Extraction rules:
-1. Include characters that speak, act, or significantly drive plot.
-2. Exclude one-off nameless background people unless visual identity is required.
-3. Resolve aliases/titles (e.g., "my husband", "boss", "I") to canonical names when possible.
-4. For first-person narrative, explicitly document who "I" maps to in introduction.
+Return JSON only. No markdown markers or comments.
 
-Field rules:
-- role_level: one of S/A/B/C/D based on narrative importance
-- costume_tier: 1-5 based on social identity (not role_level)
-- expected_appearances: always include at least one initial appearance
-- introduction: include identity, relationship mapping, and common address mapping
+Output must contain two arrays:
+- new_characters: newly discovered roles
+- updated_characters: existing roles needing introduction updates (new addresses/relationships/true names)
 
-Output format (JSON only):
 {
-  "characters": [
-    {
-      "name": "Canonical Name",
-      "aliases": ["alias 1", "alias 2"],
-      "introduction": "Role, perspective mapping, relationships, and naming aliases",
-      "gender": "male/female/other",
-      "age_range": "young adult",
-      "role_level": "S",
-      "archetype": "character archetype",
-      "personality_tags": ["tag1", "tag2"],
-      "era_period": "modern/fantasy/historical/sci-fi",
-      "social_class": "elite/middle/common",
-      "occupation": "occupation or none",
-      "costume_tier": 3,
-      "suggested_colors": ["color1", "color2"],
-      "primary_identifier": "signature visual marker",
-      "visual_keywords": ["keyword1", "keyword2"],
-      "expected_appearances": [
-        { "id": 1, "change_reason": "initial appearance" }
-      ]
-    }
-  ],
   "new_characters": [
-    {
-      "name": "Canonical Name",
-      "aliases": ["alias 1", "alias 2"],
-      "introduction": "Role, perspective mapping, relationships, and naming aliases",
-      "gender": "male/female/other",
-      "age_range": "young adult",
-      "role_level": "S",
-      "archetype": "character archetype",
-      "personality_tags": ["tag1", "tag2"],
-      "era_period": "modern/fantasy/historical/sci-fi",
-      "social_class": "elite/middle/common",
-      "occupation": "occupation or none",
-      "costume_tier": 3,
-      "suggested_colors": ["color1", "color2"],
-      "primary_identifier": "signature visual marker",
-      "visual_keywords": ["keyword1", "keyword2"],
-      "expected_appearances": [
-        { "id": 1, "change_reason": "initial appearance" }
-      ]
-    }
+   {
+    "name": "Character Name",
+    "aliases": ["alias1", "alias2"],
+    "introduction": "Identity, narrative perspective mapping, relationships, and common address names",
+    "gender": "male/female",
+    "age_range": "around twenty-five",
+    "role_level": "S/A/B/C/D",
+    "archetype": "archetype (e.g., domineering CEO)",
+    "personality_tags": ["aloof", "calculating"],
+    "era_period": "modern urban / ancient dynasty / future sci-fi",
+    "social_class": "upper elite / middle class / commoner",
+    "occupation": "entrepreneur / student / none",
+    "costume_tier": 5,
+    "suggested_colors": ["deep blue", "gold"],
+    "primary_identifier": "tear mole near eye (required only for S/A)",
+    "visual_keywords": ["elite aura", "ascetic style"],
+    "expected_appearances": [
+      {"id": 1, "change_reason": "initial appearance"},
+      {"id": 2, "change_reason": "outfit/special state reason (if any)"}
+    ]
+   }
   ],
   "updated_characters": [
-    {
-      "name": "Existing Canonical Name",
-      "updated_introduction": "Updated intro with newly discovered mapping",
-      "updated_aliases": ["new alias 1", "new alias 2"]
-    }
+   {
+    "name": "Existing role name (must exactly match library)",
+    "updated_introduction": "Updated intro with newly discovered relationships/addresses/true names",
+    "updated_aliases": ["new alias1", "new alias2"]
+   }
   ]
 }
 
-Strict constraints:
-1. JSON only.
-2. If no valid character is found, return empty arrays.
-3. Keep all strings in English.
-4. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.
+[Update Rules]
+
+⚠️ Put existing role updates in updated_characters when:
+
+1. True name discovered:
+  - Previously only I, now known as Lin Mo
+
+2. New address discovered:
+  - Newly found address like President Lin
+
+3. New relationship discovered:
+  - Newly discovered relationship between major roles
+
+4. Do not duplicate:
+  - If Lin Mo is actually existing I, do not create a new role; update existing role intro and aliases
+
+[Strict Requirements]
+1. Return JSON only, no extra text
+2. role_level must be one of S/A/B/C/D
+3. costume_tier must be an integer from 1 to 5
+4. S/A roles must include primary_identifier
+5. personality_tags must contain 2 to 5 items
+6. suggested_colors must contain 2 to 3 colors
+7. introduction is required and must include identity/relationship/address mapping
+8. If new info is found for existing roles, use updated_characters instead of creating duplicates
+9. name in updated_characters must exactly match existing library name
+10. expected_appearances is required and must include at least id=1 initial appearance
+11. Add sub-appearances only for persistent visual changes, not temporary VFX/emotion/actions
+12. Output must be strict valid JSON: no raw newline/carriage-return/tab in string values
+
+⚠️⚠️⚠️ [JSON Safety - Highest Priority] ⚠️⚠️⚠️
+- All quotation marks in source content ("" '' 「」 etc.) must be normalized to corner quotes 「」 inside JSON string values
+- ❌ Never use raw ASCII double quote " inside JSON string values
+- ✅ Correct: "introduction":"He is addressed as「Bimawen」"
+- ❌ Wrong: "introduction":"He is addressed as"Bimawen""
+- If ASCII double quotes are unavoidable, escape them as \"
+
+[Source Content]
+{input}

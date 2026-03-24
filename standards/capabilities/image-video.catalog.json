@@ -1417,5 +1417,95 @@
         "supportGenerateAudio": false
       }
     }
+  },
+
+  {
+    "modelType": "image",
+    "provider": "flow2api",
+    "modelId": "gemini-3.1-flash-image",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": ["16:9", "4:3", "1:1", "3:4", "9:16"],
+        "imageSizeOptions": ["1K", "2K", "4K"],
+        "fieldI18n": {
+          "resolution": { "labelKey": "capability.aspectRatio" },
+          "imageSize": { "labelKey": "capability.imageSize" }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "image",
+    "provider": "flow2api",
+    "modelId": "gemini-3.0-pro-image",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": ["16:9", "4:3", "1:1", "3:4", "9:16"],
+        "imageSizeOptions": ["1K", "2K", "4K"],
+        "fieldI18n": {
+          "resolution": { "labelKey": "capability.aspectRatio" },
+          "imageSize": { "labelKey": "capability.imageSize" }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "image",
+    "provider": "flow2api",
+    "modelId": "imagen-4.0-generate-preview",
+    "capabilities": {
+      "image": {
+        "resolutionOptions": ["16:9", "9:16"],
+        "fieldI18n": {
+          "resolution": { "labelKey": "capability.aspectRatio" }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "video",
+    "provider": "flow2api",
+    "modelId": "veo-3.1-fast",
+    "capabilities": {
+      "video": {
+        "generationModeOptions": ["t2v", "i2v"],
+        "resolutionOptions": ["16:9", "9:16"],
+        "firstlastframe": true,
+        "supportGenerateAudio": false,
+        "fieldI18n": {
+          "generationMode": {
+            "labelKey": "capability.generationMode",
+            "optionLabelKeys": {
+              "t2v": "generationMode.t2v",
+              "i2v": "generationMode.i2v"
+            }
+          },
+          "resolution": { "labelKey": "capability.aspectRatio" }
+        }
+      }
+    }
+  },
+  {
+    "modelType": "video",
+    "provider": "flow2api",
+    "modelId": "veo-3.1",
+    "capabilities": {
+      "video": {
+        "generationModeOptions": ["t2v", "i2v"],
+        "resolutionOptions": ["16:9", "9:16"],
+        "firstlastframe": true,
+        "supportGenerateAudio": false,
+        "fieldI18n": {
+          "generationMode": {
+            "labelKey": "capability.generationMode",
+            "optionLabelKeys": {
+              "t2v": "generationMode.t2v",
+              "i2v": "generationMode.i2v"
+            }
+          },
+          "resolution": { "labelKey": "capability.aspectRatio" }
+        }
+      }
+    }
   }
 ]

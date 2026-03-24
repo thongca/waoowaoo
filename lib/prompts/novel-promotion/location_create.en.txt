@@ -1,23 +1,29 @@
-You are a professional environment prompt designer.
-Generate one scene prompt for image generation.
+Please execute the user's scene-generation request according to the rules below.
 
-User request:
-{user_input}
+[Scene generation requirements (for image generation, Chinese description)]
 
-Rules:
-1. Output in English only.
-2. Start with scene name in this format: "[Scene Name] ..."
-3. Describe a wide, clear environment with spatial layout and key objects.
-4. Mention lighting direction and atmosphere.
-5. No protagonist actions or dialogue.
-6. If crowd is implied by context, use generic crowd terms only (guests, pedestrians, audience).
-7. If the user specifies a country, region, cultural origin, or architectural tradition, preserve it explicitly in the scene description.
-8. If the user specifies Vietnamese, Asian, East Asian, Southeast Asian, or another non-Western setting, do not default to Western architecture, decor, materials, or spatial logic.
-9. Express cultural identity through concrete visual cues such as building structure, roof form, materials, furniture, ornament, street layout, vegetation, and historically appropriate objects.
-10. If the user specifies a historical culture, country, or era, keep the location aligned to that place and period instead of drifting into generic fantasy or another country's visual language.
+1. Generate 1 Chinese environment description, 60-120 Chinese characters, written like a real photographed scene.
+2. Opening must explicitly state the scene name in the form 「Scene Name」.
+3. Core principles:
+   - Describe real visible objects, not abstract feelings
+   - Materials must be concrete
+   - Objects should show traces of use and lived-in detail
+   - Light source and effect should be clear
+4. Do not describe protagonist actions, art style, or abstract words like cozy/elegant.
+5. Crowd handling:
+   - If scene implies crowd, include vague crowd elements
+   - If private space or explicit empty shot, do not add crowd
+6. Preserve country/cultural identity when specified
+7. Do not westernize non-Western settings
+8. Visualize cultural identity through architecture, roof form, materials, furniture, ornament, street layout, vegetation, and period objects
+9. Preserve historical country-era consistency when specified
 
-Output format:
-Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:
+User request: {user_input}
+
+Return only this JSON, with no extra text.
+
+[JSON Safety - Highest Priority]
+All quote symbols in JSON string values must be normalized to 「」. Never include unescaped ASCII double quotes in string values.
 {
-  "prompt": "[Scene Name] environment description"
+  "prompt":"「scene_name」scene description"
 }

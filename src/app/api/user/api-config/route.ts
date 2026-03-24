@@ -204,6 +204,7 @@ const OPTIONAL_PRICING_PROVIDER_KEYS = new Set([
   'openai-compatible',
   'gemini-compatible',
   'yescale',
+  'flow2api',
   'bailian',
   'siliconflow',
 ])
@@ -564,6 +565,15 @@ function resolveProviderGatewayRoute(
   }
 
   if (isYeScaleProvider) {
+    if (rawGatewayRoute === 'official') {
+      throw new ApiError('INVALID_PARAMS', {
+        code: 'PROVIDER_GATEWAY_ROUTE_INVALID',
+      })
+    }
+    return 'openai-compat'
+  }
+
+  if (providerKey === 'flow2api') {
     if (rawGatewayRoute === 'official') {
       throw new ApiError('INVALID_PARAMS', {
         code: 'PROVIDER_GATEWAY_ROUTE_INVALID',
@@ -1635,6 +1645,9 @@ function normalizeCapabilitySelectionsInput(
       })
     }
 
+    const parsedModelKey = parseModelKeyStrict(modelKey)
+    const providerKey = parsedModelKey ? getProviderKey(parsedModelKey.provider) : ''
+
     const selection: Record<string, string | number | boolean> = {}
     for (const [field, value] of Object.entries(rawSelection)) {
       if (field === 'aspectRatio') {
@@ -1650,6 +1663,21 @@ function normalizeCapabilitySelectionsInput(
           field: `capabilityDefaults.${modelKey}.${field}`,
         })
       }
+      if (
+        providerKey === 'flow2api'
+        && field === 'generationMode'
+        && typeof value === 'string'
+      ) {
+        if (value === 'firstlastframe') {
+          selection[field] = 'i2v'
+          continue
+        }
+        if (value === 'normal') {
+          selection[field] = 't2v'
+          continue
+        }
+      }
+
       selection[field] = value
     }
 
@@ -1875,6 +1903,32 @@ export const GET = apiHandler(async () => {
   for (const p of providers) {
     if (getProviderKey(p.id) !== 'yescale') continue
     for (const preset of YESCALE_PRESETS) {
+      const modelKey = composeModelKey(p.id, preset.modelId)
+      if (!modelKey || savedModelKeys.has(modelKey)) continue
+      savedModelKeys.add(modelKey)
+      const base: StoredModel = {
+        modelId: preset.modelId,
+        modelKey,
+        name: preset.name,
+        type: preset.type,
+        provider: p.id,
+        price: 0,
+        capabilities: findBuiltinCapabilities(preset.type, p.id, preset.modelId),
+      }
+      disabledPresets.push({ ...withDisplayPricing(base, pricingDisplay), enabled: false })
+    }
+  }
+  // flow2api: inject preset image + video models for each flow2api provider instance
+  const FLOW2API_PRESETS: { type: UnifiedModelType; modelId: string; name: string }[] = [
+    { type: 'image', modelId: 'gemini-3.1-flash-image',      name: 'Nano Banana 2' },
+    { type: 'image', modelId: 'gemini-3.0-pro-image',         name: 'Nano Banana Pro' },
+    { type: 'image', modelId: 'imagen-4.0-generate-preview',  name: 'Imagen 4' },
+    { type: 'video', modelId: 'veo-3.1-fast',                 name: 'Veo 3.1 Fast' },
+    { type: 'video', modelId: 'veo-3.1',                      name: 'Veo 3.1' },
+  ]
+  for (const p of providers) {
+    if (getProviderKey(p.id) !== 'flow2api') continue
+    for (const preset of FLOW2API_PRESETS) {
       const modelKey = composeModelKey(p.id, preset.modelId)
       if (!modelKey || savedModelKeys.has(modelKey)) continue
       savedModelKeys.add(modelKey)

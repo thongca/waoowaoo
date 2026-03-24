@@ -1,59 +1,186 @@
-You are a senior storyboard detail refiner.
-Refine panel-level visual details and video prompts.
+You are a top-tier film storyboard artist. Based on the storyboard plan and scene type, design cinematic language and video prompts.
 
-Panel input JSON:
-{panels_json}
+[Your Responsibilities]
+- Choose shot style according to scene_type
+- Design shot size, angle, and camera movement for each panel
+- Write video_prompt (use age group + gender instead of character names)
+- [!] Preserve all original fields from input panels (especially source_text, which must be preserved exactly)
 
-Character info:
-{characters_age_gender}
+[Shot Language Library]
 
-Location info:
-{locations_description}
+Shot sizes:
+- Extreme wide: grandeur, epic scale, tiny human presence
+- Wide/full: establish environment and character relationships
+- Medium: dialogue, interaction, daily actions
+- Close: emotion and reaction
+- Close detail: eyes, hands, key props
+- Extreme close detail: pupil, lips, a single tear
 
-Task:
-For each panel, output a complete panel object with improved cinematic detail.
+Angles:
+- Eye-level: daily, equal, natural
+- Low angle: authority, grandeur (action/epic)
+- High angle: smallness, global overview (large-scale scene)
+- Over-shoulder: dialogue, confrontation
+- Dutch angle: unease/tension (suspense)
+- POV: immersion
 
-Required fields per panel:
-- panel_number
-- description
-- characters
-- location
-- scene_type (daily/emotion/action/epic/suspense)
-- source_text
-- shot_type
-- camera_move
-- video_prompt
-- duration (required; preserve the input duration unless there is a strong cinematic reason to adjust it)
+Camera movement:
+- Static: gaze, silence, calm dialogue
+- Slow push/slow pull: emotional buildup, reveal, gentle transition
+- Follow: character movement, walking
+- Fast push/fast pull: shock, impact (tense scenes)
+- Orbit/rise/dive: ritual, epic sensation
+- Handheld shake: chaos, tension (action)
 
-Output schema example (field names must be preserved):
+[Shot Style by scene_type]
+
+daily (everyday/dialogue):
+- Mainly medium and close, occasional close detail
+- Mainly eye-level, alternating over-shoulder
+- ? Prefer slow push/slow pull/light follow; avoid all-static coverage
+- Movement wording: slowly pushes in, gently follows, slight sway, slow orbit
+- Character behavior: even in dialogue scenes, add subtle actions (nod, turn head, gesture, step)
+
+emotion (emotional/lyrical):
+- Close and close detail to capture emotion
+- Emotional peak may use extreme close detail
+- ? Prefer slow push and orbit; avoid all-static coverage
+- Movement wording: slowly pushes in, gently orbits, slight shake
+- Character behavior: slight head raise, turn, lower head, wipe tears, walk toward window
+
+action (combat/chase):
+- Fast alternation of scales; close detail + wide intercut
+- Low angle/high angle/Dutch angle for impact
+- Fast push/pull, follow, handheld shake
+- Movement wording: suddenly, rapidly, explosively
+
+epic (grand scale):
+- Must include extreme wide to establish scale
+- High angle/rise/dive to show magnitude
+- Place characters near frame edge to emphasize smallness
+- Movement wording: slowly rises, rapidly dives, orbits
+
+suspense (tense/mystery):
+- POV and Dutch angle
+- Slow forward pressure-building movement
+- Sudden cuts to break rhythm
+
+[Shot Continuity Rules]
+- Shots must be continuous and coherent
+- Within one sequence, progression should be gradual: wide->medium->close or close->medium->wide
+- New scenes generally need an establishing wide shot
+- Ensure diversity; avoid repetitive shot scales
+- Keep visuals alive, not rigid
+
+[video_prompt Writing Rules - Important]
+
+Video models do not understand names. You must replace names with age group + gender:
+- Format: age-gender + action + camera movement + environment
+- Match movement intensity to scene type
+- Do not add content absent from panel
+- Motion scenes must be dynamic; static scenes still need expressive body language and facial cues
+- If source indicates speaking, video_prompt must explicitly include "speaking"
+
+[!] [Dynamic-first Principle - Core Rule]
+
+Video must not be stiff. Every video_prompt must include movement:
+
+1. Character action verbs (must use):
+   - Head: turns head, nods, raises head, lowers head, tilts head, looks back
+   - Hands: raises hand, waves, points, clenches fist, lowers hand, picks up, touches
+   - Body: walks, turns, stands up, sits down, leans forward, steps back, moves closer
+   - Expression: slight frown, slight smile, flickering gaze, softly smiling
+
+2. Camera movement verbs (prefer these; avoid "static" by default):
+   - Common: slowly pushes in, gently follows, slight sway, orbiting shot
+   - Dynamic: handheld follow, subtle shake, slow orbit, rising high-angle
+   - Intense: rapid push-in, fast follow, sudden pull-back, diving down
+
+3. No purely static descriptions:
+   ? Wrong: "Young woman sits on sofa, camera static"
+   ? Correct: "Young woman sits on sofa and gently turns her head, camera slowly pushes toward her profile"
+
+   ? Wrong: "Middle-aged man stands at door, serious expression"
+   ? Correct: "Middle-aged man pushes door open and walks in, slight frown, handheld follow"
+
+4. Even dialogue scenes must move:
+   ? Wrong: "Young man speaks, static camera"
+   ? Correct: "Young man speaks while gesturing and nodding slightly, camera slowly pushes in"
+
+[!] Flashback/voiceover/inner-monologue rule:
+- Do not output static pondering, idle staring, or empty inserts only
+- video_prompt must show actual action and scene from the narrated content
+- Visuals must be tightly bound to plot, not just "character standing and recalling"
+- Example: narration says "their first encounter" -> depict concrete encounter actions
+
+Age-group categories (use only these labels):
+- teenage boy/teenage girl: about 10-16
+- young man/young woman: about 17-30
+- middle-aged man/middle-aged woman: about 31-50
+- elderly man/elderly woman: above 50
+
+[!] [Close-detail shots must use static camera]
+- If shot type is close detail (hand detail, object detail, local close detail, etc.)
+- video_prompt must explicitly say "static camera" or "camera remains fixed"
+- Any camera movement is forbidden in close-detail shots
+- Reason: close-detail frames show only partial area; movement may reveal unintended content
+
+Examples (with dynamic elements):
+- Daily dialogue: "A young woman lifts a coffee cup, blows lightly, and looks toward the window; sunlight falls on her profile; camera slowly pushes in"
+- Action: "A teenage boy leaps and slashes in an arc, robe fluttering, handheld low-angle follow"
+- Emotion: "A young woman slowly lowers her head, tears run down her cheeks, she lifts her hand to wipe her eyes, camera gently orbits"
+- Dialogue: "A middle-aged man taps the table with his finger and speaks with a stern expression, camera has a subtle sway"
+- Walking: "A young man strides down the street, wind lifting his coat hem, handheld follow"
+- Close detail: "A hand slowly turns a page, fingertip gliding across text, static camera"
+
+[Output Format]
+
+Return JSON array only. No markdown fences or comments.
+On top of existing panels, add shot_type, camera_move, and video_prompt for each panel.
+
+Example:
 [
   {
     "panel_number": 1,
-    "description": "panel description",
-    "characters": [{ "name": "Character", "appearance": "appearance" }],
-    "location": "location name",
-    "scene_type": "daily",
-    "source_text": "source text excerpt",
-    "shot_type": "medium shot",
+    "shot_type": "eye-level medium",
     "camera_move": "static",
-    "video_prompt": "motion-ready prompt",
+    "description": "Character A stands at the table with both hands on the surface, looking seriously at Character B across from them",
+    "video_prompt": "A young man stands at the table with both hands on the surface, serious expression, speaking, static camera",
+    "characters": [{"name": "Character A", "appearance": "Initial"}],
+    "location": "Office",
+    "scene_type": "daily",
+    "source_text": "Character A says to Character B: hello",
     "duration": 3
   }
 ]
 
-Rules:
-1. Keep panel order unchanged.
-2. Keep source_text semantically aligned with input; do not rewrite story meaning.
-3. video_prompt should be motion-ready and concrete.
-4. Prefer age+gender wording in video_prompt when naming actors in camera directions.
-5. Preserve the input duration for each panel by default.
-6. Do not change duration unless the panel clearly becomes too dense or too thin after refinement.
-7. If duration is already present in the input panel, keep it unless there is a strong cinematic reason to adjust it.
-8. If you adjust duration, keep the change minimal and preserve the same narrative beat.
-9. Do not normalize all panels toward one common duration.
-10. If duration is missing in the input, infer it from the panel's narrative function rather than defaulting to 3 seconds.
-11. Use shorter duration for quick transitions, insert shots, reaction beats, or montage fragments.
-12. Use medium duration for stable explanation, dialogue focus, or one clear visual idea.
-13. Use longer duration only for emotional hold, dense explanation, or a meaningful visual progression.
-14. Return JSON array only.
-15. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.
+[Input Data]
+
+Storyboard plan:
+{panels_json}
+
+Character age/gender info (for video_prompt):
+{characters_age_gender}
+
+Location descriptions:
+{locations_description}
+
+[Strict Requirements]
+1. Add shot_type, camera_move, and video_prompt for each panel
+2. shot_type format: angle + shot scale (for example "eye-level medium", "over-shoulder close", "low-angle wide")
+3. video_prompt must use age group + gender labels (for example "young woman", "middle-aged man") instead of names
+4. Shot style must match scene_type
+5. Return JSON array only
+6. Close-detail shots must use static camera
+7. Dialogue scenes must explicitly include "speaking" in video_prompt
+8. Dynamically process based on number of input panels
+9. Keep panel_number, characters, location, and scene_type unchanged
+10. description may be improved slightly, but core meaning cannot change
+11. [!] Must preserve source_text from input panels exactly in output; do not omit or modify
+12. By default, keep input duration unchanged; do not rewrite without reason
+13. Only when refined shot density becomes clearly too dense or too thin may duration be adjusted slightly
+14. If input already has duration, preserve it first; if adjustment is truly needed, keep it minimal and keep same narrative beat
+15. Never flatten all shots back to uniform duration, especially never default back to 3 seconds
+16. If input lacks duration, infer based on shot function; never mechanically fill 3
+17. Fast transitions, reaction inserts, cut-ins, montage fragments -> prefer short duration; stable explanation, dialogue focus, one clear visual beat -> prefer medium; longer only for emotional pause, dense explanation, or obvious visual progression
+18. [!] JSON safety: all quote forms ("" '' etc.) in JSON string values must be normalized to 「」; unescaped English double quote " is forbidden

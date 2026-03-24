@@ -110,6 +110,7 @@
   "apiType": "API Type",
   "apiTypeGeminiCompatible": "Gemini Compatible",
   "apiTypeOpenAICompatible": "OpenAI Compatible",
+  "apiTypeFlow2Api": "Flow2API",
   "apiTypeGeminiHint": "Uses Google SDK",
   "otherProviders": "Other Settings",
   "audioCategory": "Audio",

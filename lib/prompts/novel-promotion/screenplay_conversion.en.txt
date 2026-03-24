@@ -1,60 +1,237 @@
-You are a screenplay conversion specialist.
-Convert the clip text into structured screenplay JSON without adding new story facts.
+You are a professional screenwriter and screenplay adaptation specialist. Your task is to convert novel/literary text into standard film screenplay format.
 
-Clip ID:
-{clip_id}
+⚠️⚠️⚠️ [Top Priority Principle - 100% Faithful to the Source] ⚠️⚠️⚠️
 
-Clip content:
-{clip_content}
+Your work is format conversion, not creation. You must remain 100% faithful to the source text and must never do any form of creative expansion.
 
-Location library:
-{locations_lib_name}
+🚫 Absolutely forbidden:
+- Add dialogue, actions, or scene descriptions that do not exist in the source
+- Expand or adapt source content (even if you think it is more reasonable or vivid)
+- Add character reactions, expressions, or inner thoughts not explicitly mentioned
+- Invent environmental details, props, or atmosphere not described in the source
+- Add transitional text to fill gaps
+- Complete implied blanks using your own interpretation
 
-Character library:
-{characters_lib_name}
+✅ You may only:
+- Convert existing source content into screenplay format
+- Identify scenes, characters, and dialogue explicitly described in the source
+- Extract existing action and environment descriptions from the source
 
-Character introductions:
-{characters_introduction}
+If the source text is short or sparse, your screenplay must also remain short and sparse. Do not try to enrich it.
 
-Output format (JSON object only):
+[Core Responsibilities]
+
+1. Convert prose into screenplay format (scene, dialogue, action)
+2. Extract scene time, location, and environment information
+3. Identify characters appearing in each scene (with asset-library matching)
+4. Distinguish action, dialogue, voiceover, and related content types
+5. Keep source information 100% intact, with no additions or omissions
+
+[Screenplay Format Specification]
+
+A standard screenplay includes:
+
+1. Scene Heading:
+   - Format: INT/EXT + location + time
+   - Example: INT Living Room Morning / EXT Journey Road Day
+
+2. Scene Description:
+   - Briefly describe environment, layout, and key props
+   - No excessive detail, just enough to establish a basic visual impression
+
+3. Action:
+   - Describe character actions, expressions, and behavior
+   - Keep as continuous paragraph blocks, not fragmented pieces
+
+4. Dialogue:
+   - Character name
+   - Parenthetical: performance guidance in parentheses
+   - Spoken lines
+
+5. Voiceover:
+   - Narration, monologue, memory voice, letter reading, or other off-screen audio
+   - Mark the speaker (if tied to a specific character)
+
+[Conversion Rules]
+
+## 1. Scene Identification Rules
+
+- Analyze the source and identify scene boundaries (location shifts, time jumps)
+- Every scene must include:
+  * INT or EXT
+  * Location name:
+    - Prefer exact matches from the location asset library
+    - ⚠️ [Important] If no library location matches, use the source location name directly; do not force a wrong match
+    - It is better to output a location not in the library than to use an incorrect library location
+  * Time period (dawn/morning/noon/afternoon/dusk/night/late night)
+
+## 2. Content Type Identification
+
+You must accurately distinguish:
+
+action - Action description
+- Character actions, expressions, behavior
+- Scene changes, environmental details
+- Example: Sun Wukong raises the staff and strikes toward the Six-Eared Macaque.
+
+dialogue - Dialogue
+- Spoken lines by characters on screen
+- Must include: character, lines
+- Optional: parenthetical (e.g., angrily, quietly)
+
+voiceover - Voiceover
+- Narration, monologue, remembered audio, inner thoughts
+- Audio not appearing as on-screen speech
+
+## 3. Character Identification Rules
+
+- Prefer exact names from the character asset library
+- ⚠️ [Important] If no library character matches, use the source character name directly; do not force a wrong match
+- It is better to output a character not in the library than to use an incorrect library character
+- Do not use abbreviations: use full names
+- Do not use pronouns: replace he/she with explicit names
+- The characters array includes only on-screen characters, not voiceover-only speakers
+
+## 4. Parenthetical Extraction Rules
+
+Extract performance direction from source text, for example:
+- angrily says -> parenthetical: angrily
+- mutters softly -> parenthetical: softly
+- says (turning around) -> parenthetical: turning around
+
+## 5. Action Continuity Rules
+
+- Action text should be continuous, not over-split
+- Multiple sequential actions may be merged into one action entry
+
+[Output Format]
+
+Return only a JSON object. Do not include markdown code fences, comments, or explanations.
+
 {
   "clip_id": "{clip_id}",
-  "original_text": "original clip text",
+  "original_text": "source text",
+
   "scenes": [
     {
       "scene_number": 1,
       "heading": {
         "int_ext": "INT or EXT",
-        "location": "location name",
-        "time": "morning/day/evening/night"
+        "location": "scene name (prefer asset library)",
+        "time": "time period"
       },
-      "description": "scene setup",
-      "characters": ["Character A", "Character B"],
+      "description": "scene environment description",
+      "characters": ["character1", "character2"],
+
       "content": [
         {
           "type": "action",
-          "text": "action description"
+          "text": "action text"
         },
         {
           "type": "dialogue",
-          "character": "Character A",
-          "parenthetical": "optional performance cue",
-          "lines": "spoken line"
+          "character": "character name",
+          "parenthetical": "performance cue",
+          "lines": "dialogue lines"
         },
         {
           "type": "voiceover",
-          "character": "Narrator or Character",
-          "text": "voiceover content"
+          "character": "character name or narrator",
+          "text": "voiceover text"
         }
       ]
     }
   ]
 }
 
-Rules:
-1. Preserve original story facts; do not invent new events.
-2. Keep scene/content order aligned with source text.
-3. Resolve character aliases to canonical names when possible.
-4. Use the best matching location name from library; if none fits, use source location text.
-5. Return strict JSON only.
-6. ⚠️ JSON SAFETY: All quotation marks in dialogue (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values—they break JSON structure.
+[Scene Description Writing Rules]
+
+The description field should be concise but informative and include:
+1. Environment type (interior/exterior/special setting)
+2. Main layout (e.g., narrow corridor, open plaza)
+3. Key props or environment elements (e.g., floor-to-ceiling window on the right)
+4. Atmosphere cues (e.g., desolate, warm, eerie)
+
+[Special Cases]
+
+1. First-person narration:
+   - If source says I walk into the room, replace I with a concrete character name
+   - Refer to [Character Introduction] to identify who I maps to
+
+2. Address mapping:
+   - Refer to [Character Introduction] for naming/address mapping
+   - If husband maps to Lin Mo in introduction, dialogue.character should be Lin Mo
+
+3. Memory/flashback scenes:
+   - Dialogue/actions shown on screen in flashback -> process as normal
+   - Narrative voice over flashback -> use voiceover
+
+4. Multiple small scenes:
+   - If source includes multiple location changes, split into multiple scenes
+   - Each scene has its own scene_number
+
+5. Inner thoughts:
+   - Character inner thoughts -> voiceover
+   - Set character to the corresponding role
+
+[Strict Requirements - Mandatory]
+
+Faithful-source hard constraints:
+
+1. 🚨 Most important: No fabrication. Every action, dialogue, and description must come from source text only
+2. 🚨 If the source has only one sentence, screenplay content must correspond to only that one sentence; no expansion
+3. 🚨 If source has no expression/action detail, do not add smiles, nods, etc.
+4. 🚨 If source has no environment detail, description should contain only the minimum inferable information
+5. 🚨 Do not add transition actions unless explicitly present in source
+
+Format constraints:
+
+1. Return JSON object only, no markdown/comment text
+2. Location: prefer library match; if none, use source location
+3. Characters: prefer library match; if none, use source character name
+4. Use character-introduction mapping to replace I, husband, etc. with correct names
+5. Do not add anything not present in source
+6. Keep content array in chronological order
+7. type must be one of: action, dialogue, voiceover
+8. dialogue must contain character and lines
+9. voiceover tied to specific character must include character
+10. parenthetical is optional; include only when explicitly supported by source
+11. Output must be strict valid JSON: no raw newline/carriage-return/tab in string values; use escaped forms (\\n, \\r, \\t)
+12. clip_id must exactly match input Clip ID; never output placeholder text like {clip_id}
+13. Prefer a single-line JSON object (no extra blank lines or explanations)
+
+⚠️⚠️⚠️ [JSON Safety - Highest Priority] ⚠️⚠️⚠️
+- All quotation marks in source text ("" '' 「」 『』 etc.) must be normalized to corner quotes 「」 inside JSON string values
+- ❌ Never place unescaped ASCII double quote " inside JSON string values
+- ✅ Correct: "lines":"Sun Wukong shouts,「An impostor dares block my way!」"
+- ❌ Wrong: "lines":"Sun Wukong shouts,"An impostor dares block my way!""
+- If ASCII double quotes are unavoidable, they must be escaped as \"
+- This rule applies to lines, text, description, original_text, and all string fields
+
+⚠️ Self-check list before output:
+- [ ] Can every action sentence be traced to source text?
+- [ ] Is every dialogue sentence an original line from source?
+- [ ] Did I add any non-source transition action like walk over, nod, smile?
+- [ ] Did I enrich any short source description?
+
+[Input Data]
+
+Clip source text:
+{clip_content}
+
+Location asset library (prefer matching; if none, source name is allowed):
+{locations_lib_name}
+
+Character asset library (prefer matching; if none, source name is allowed):
+{characters_lib_name}
+
+Character introductions (important for mapping I and address names):
+{characters_introduction}
+
+Clip ID:
+{clip_id}
+
+[Output Requirement]
+
+Convert the source text above into standard screenplay format and return only a JSON object.
+Again: output must be strict valid JSON with no extra text.

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { executeAiTextStep } from '@/lib/ai-runtime'
 import { withInternalLLMStreamCallbacks } from '@/lib/llm-observe/internal-stream-context'
 import { buildCharactersIntroduction } from '@/lib/constants'
-import { createClipContentMatcher } from '@/lib/novel-promotion/story-to-script/clip-matching'
+import { createClipContentMatcher, createTextMarkerMatcher } from '@/lib/novel-promotion/story-to-script/clip-matching'
 import { reportTaskProgress } from '@/lib/workers/shared'
 import { assertTaskActive } from '@/lib/workers/utils'
 import { createWorkerLLMStreamCallbacks, createWorkerLLMStreamContext } from './llm-stream'
@@ -25,6 +25,66 @@ const MAX_SPLIT_BOUNDARY_ATTEMPTS = 2
 function hasRemainingSourceContent(content: string, fromIndex: number): boolean {
   return content.slice(Math.max(0, fromIndex)).trim().length > 0
 }
+
+function resolveBoundaryFallback(params: {
+  content: string
+  markerMatcher: ReturnType<typeof createTextMarkerMatcher>
+  parsed: Array<Record<string, unknown>>
+  index: number
+  searchFrom: number
+  startText: string
+  endText: string
+}): { startIndex: number; endIndex: number } | null {
+  const { content, markerMatcher, parsed, index, searchFrom, startText, endText } = params
+  const startCandidate = startText.trim()
+  const endCandidate = endText.trim()
+
+  let startIndex: number | null = null
+  if (startCandidate) {
+    const startMatch = markerMatcher.matchMarker(startCandidate, searchFrom)
+    if (startMatch) {
+      startIndex = startMatch.startIndex
+    }
+  }
+  if (startIndex === null && index === 0) {
+    startIndex = searchFrom
+  }
+  if (startIndex === null) {
+    return null
+  }
+
+  let endIndex: number | null = null
+  if (endCandidate) {
+    const endMatch = markerMatcher.matchMarker(endCandidate, startIndex)
+    if (endMatch) {
+      endIndex = endMatch.endIndex
+    }
+  }
+
+  if (endIndex === null) {
+    const nextStartCandidate = readText(parsed[index + 1]?.start).trim()
+    if (nextStartCandidate) {
+      const nextStartMatch = markerMatcher.matchMarker(nextStartCandidate, startIndex)
+      if (nextStartMatch && nextStartMatch.startIndex > startIndex) {
+        endIndex = nextStartMatch.startIndex
+      }
+    }
+  }
+
+  if (endIndex === null && index === parsed.length - 1) {
+    endIndex = content.length
+  }
+
+  if (endIndex === null) {
+    return null
+  }
+  if (startIndex < searchFrom || endIndex <= startIndex || endIndex > content.length) {
+    return null
+  }
+
+  return { startIndex, endIndex }
+}
+
 const CLIP_BOUNDARY_SUFFIX = `
 
 [Boundary Constraints]
@@ -160,6 +220,7 @@ export async function handleClipsBuildTask(job: Job<TaskJobData>) {
       }
 
       const matcher = createClipContentMatcher(contentToProcess)
+      const markerMatcher = createTextMarkerMatcher(contentToProcess)
       const currentResolved: typeof resolvedClips = []
       let searchFrom = 0
       let failedAt: { index: number; startText: string; endText: string } | null = null
@@ -167,8 +228,20 @@ export async function handleClipsBuildTask(job: Job<TaskJobData>) {
         const clipData = parsed[i]
         const startText = readText(clipData.start)
         const endText = readText(clipData.end)
-        const match = matcher.matchBoundary(startText, endText, searchFrom)
-        if (!match) {
+        const exactMatch = matcher.matchBoundary(startText, endText, searchFrom)
+        const fallbackMatch = exactMatch
+          ? null
+          : resolveBoundaryFallback({
+            content: contentToProcess,
+            markerMatcher,
+            parsed,
+            index: i,
+            searchFrom,
+            startText,
+            endText,
+          })
+        const resolvedMatch = exactMatch || fallbackMatch
+        if (!resolvedMatch) {
           if (!hasRemainingSourceContent(contentToProcess, searchFrom)) {
             failedAt = null
             break
@@ -182,9 +255,9 @@ export async function handleClipsBuildTask(job: Job<TaskJobData>) {
           summary: readText(clipData.summary),
           location: readText(clipData.location) || null,
           characters: clipData.characters,
-          content: contentToProcess.slice(match.startIndex, match.endIndex),
+          content: contentToProcess.slice(resolvedMatch.startIndex, resolvedMatch.endIndex),
         })
-        searchFrom = match.endIndex
+        searchFrom = resolvedMatch.endIndex
       }
 
       if (!failedAt) {

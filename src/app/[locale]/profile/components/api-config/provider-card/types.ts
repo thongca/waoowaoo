@@ -60,5 +60,5 @@ export const VERIFIABLE_PROVIDER_KEYS = new Set([
   'ark', 'google', 'openrouter', 'minimax', 'fal', 'vidu',
   'yescale',
   'bailian', 'siliconflow',
-  'openai-compatible', 'gemini-compatible',
+  'openai-compatible', 'gemini-compatible', 'flow2api',
 ])

@@ -31,6 +31,7 @@ export interface LLMCapabilities {
 
 export interface ImageCapabilities {
   resolutionOptions?: string[]
+  imageSizeOptions?: string[]
   google_searchOptions?: string[]
   thinkingOptions?: string[]
   fieldI18n?: CapabilityFieldI18nMap
@@ -87,6 +88,7 @@ const LLM_ALLOWED_FIELDS = new Set<keyof LLMCapabilities>([
 
 const IMAGE_ALLOWED_FIELDS = new Set<keyof ImageCapabilities>([
   'resolutionOptions',
+  'imageSizeOptions',
   'google_searchOptions',
   'thinkingOptions',
   'fieldI18n',
@@ -310,10 +312,20 @@ function validateImageCapabilities(issues: CapabilityValidationIssue[], raw: unk
     })
   }
 
+  const imageSizeOptions = raw.imageSizeOptions
+  if (imageSizeOptions !== undefined && !isStringArray(imageSizeOptions)) {
+    issues.push({
+      code: 'CAPABILITY_FIELD_INVALID',
+      field: 'capabilities.image.imageSizeOptions',
+      message: 'imageSizeOptions must be a non-empty string array',
+    })
+  }
+
   validateFieldI18nMap(issues, 'image', raw.fieldI18n, {
     resolution: isStringArray(resolutionOptions) ? resolutionOptions : undefined,
     google_search: isStringArray(googleSearchOptions) ? googleSearchOptions : undefined,
     thinking: isStringArray(thinkingOptions) ? thinkingOptions : undefined,
+    imageSize: isStringArray(imageSizeOptions) ? imageSizeOptions : undefined,
   })
 }
 

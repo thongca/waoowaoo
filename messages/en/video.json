@@ -188,6 +188,10 @@
   "errors": {
     "unknownError": "Unknown error"
   },
+  "generationMode": "Generation mode",
+  "generationMode.t2v": "Text to video",
+  "generationMode.i2v": "Image to video",
+  "aspectRatio": "Aspect ratio",
   "capability": {
     "generationMode": "Generation mode",
     "generateAudio": "Generate audio",
@@ -198,7 +202,8 @@
     "reasoningEffort": "Reasoning effort",
     "voice": "Voice",
     "rate": "Rate",
-    "mode": "Mode"
+    "mode": "Mode",
+    "imageSize": "Image Size"
   },
   "unit": {
     "second": "s",

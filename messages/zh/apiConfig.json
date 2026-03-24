@@ -110,6 +110,7 @@
   "apiType": "API 类型",
   "apiTypeGeminiCompatible": "Gemini 兼容",
   "apiTypeOpenAICompatible": "OpenAI 兼容",
+  "apiTypeFlow2Api": "Flow2API",
   "apiTypeGeminiHint": "使用 Google SDK",
   "otherProviders": "其他配置",
   "audioCategory": "音频",

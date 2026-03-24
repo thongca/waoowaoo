@@ -19,7 +19,7 @@ export function ProviderBaseFields({ provider, t, state }: ProviderBaseFieldsPro
       case 'openai-compatible':
         return 'https://api.openai.com/v1'
       default:
-        return 'http://localhost:8000'
+        return 'http://172.10.1.17:8000'
     }
   })()
 

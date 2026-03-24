@@ -21,6 +21,7 @@ import { OpenAICompatibleVideoGenerator } from './video'
 import { MinimaxVideoGenerator } from './minimax'
 import { ViduVideoGenerator } from './vidu'
 import { YEScaleAudioGenerator, YEScaleImageGenerator, YEScaleVideoGenerator } from './yescale'
+import { Flow2ApiImageGenerator, Flow2ApiVideoGenerator } from './flow2api'
 import { getProviderKey } from '@/lib/api-config'
 import {
     BailianAudioGenerator,
@@ -64,6 +65,8 @@ export function createImageGenerator(provider: string, modelId?: string): ImageG
             return new GeminiCompatibleImageGenerator(actualModelId, provider)
         case 'openai-compatible':
             return new OpenAICompatibleImageGenerator(actualModelId, provider)
+        case 'flow2api':
+            return new Flow2ApiImageGenerator(provider)
         case 'bailian':
             return new BailianImageGenerator()
         case 'siliconflow':
@@ -95,6 +98,8 @@ export function createVideoGenerator(provider: string): VideoGenerator {
             return new ViduVideoGenerator()
         case 'openai-compatible':
             return new OpenAICompatibleVideoGenerator(provider)
+        case 'flow2api':
+            return new Flow2ApiVideoGenerator(provider)
         case 'bailian':
             return new BailianVideoGenerator()
         case 'siliconflow':

@@ -42,6 +42,20 @@ const CAPABILITY_VALUE_ALIASES: Record<string, Record<string, Record<string, Cap
       medium: 'minimal',
     },
   },
+  // flow2api video models use t2v/i2v/r2v mode names; map the internal 'normal'/'firstlastframe'
+  // values produced by resolveVideoGenerationMode to the appropriate provider-specific modes.
+  'flow2api::veo-3.1-fast': {
+    generationMode: {
+      normal: 't2v',
+      firstlastframe: 'i2v',
+    },
+  },
+  'flow2api::veo-3.1': {
+    generationMode: {
+      normal: 't2v',
+      firstlastframe: 'i2v',
+    },
+  },
 }
 
 function getNamespaceCapabilities(
@@ -81,7 +95,19 @@ function normalizeCapabilityOptionValue(
 ): CapabilityValue {
   if (typeof value !== 'string' || !allowedValues) return value
 
+  if (field === 'generationMode') {
+    if (value === 'firstlastframe' && allowedValues.includes('i2v')) return 'i2v'
+    if (value === 'normal' && allowedValues.includes('t2v')) return 't2v'
+    if (value === 'i2v' && allowedValues.includes('firstlastframe')) return 'firstlastframe'
+    if (value === 't2v' && allowedValues.includes('normal')) return 'normal'
+  }
+
+  const parsedModelKey = parseModelKeyStrict(modelKey)
+  const providerKeyAlias = parsedModelKey
+    ? CAPABILITY_VALUE_ALIASES[`${parsedModelKey.provider.split(':')[0]}::${parsedModelKey.modelId}`]
+    : undefined
   const normalized = CAPABILITY_VALUE_ALIASES[modelKey]?.[field]?.[value]
+    ?? providerKeyAlias?.[field]?.[value]
   if (normalized === undefined) return value
   return allowedValues.includes(normalized) ? normalized : value
 }

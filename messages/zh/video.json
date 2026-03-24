@@ -188,6 +188,10 @@
   "errors": {
     "unknownError": "未知错误"
   },
+  "generationMode": "生成模式",
+  "generationMode.t2v": "文生视频",
+  "generationMode.i2v": "图生视频",
+  "aspectRatio": "画幅比例",
   "capability": {
     "generationMode": "生成模式",
     "generateAudio": "生成音频",
@@ -198,7 +202,8 @@
     "reasoningEffort": "推理强度",
     "voice": "音色",
     "rate": "语速",
-    "mode": "模式"
+    "mode": "模式",
+    "imageSize": "图片尺寸"
   },
   "unit": {
     "second": "秒",

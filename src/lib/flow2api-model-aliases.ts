@@ -19,7 +19,7 @@ function normalizeProviderKey(providerId: string): string {
 
 function isFlow2ApiStyleProvider(providerId: string): boolean {
   const providerKey = normalizeProviderKey(providerId)
-  return providerKey === 'gemini-compatible' || providerKey === 'openai-compatible'
+  return providerKey === 'gemini-compatible' || providerKey === 'openai-compatible' || providerKey === 'flow2api'
 }
 
 export function resolveFlow2ApiImageRuntimeModelId(modelId: string): string {

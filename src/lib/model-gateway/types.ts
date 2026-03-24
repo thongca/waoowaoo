@@ -1,6 +1,6 @@
 export type ModelGatewayRoute = 'official' | 'openai-compat'
 
-export type CompatibleProviderKey = 'openai-compatible'
+export type CompatibleProviderKey = 'openai-compatible' | 'flow2api'
 
 export type OpenAICompatImageProfile = CompatibleProviderKey
 

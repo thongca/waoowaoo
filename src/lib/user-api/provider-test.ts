@@ -21,7 +21,7 @@ type PresetProviderType = 'ark' | 'google' | 'openrouter' | 'minimax' | 'fal' | 
   | 'yescale'
   | 'bailian'
   | 'siliconflow'
-type CompatibleProviderType = 'openai-compatible' | 'gemini-compatible'
+type CompatibleProviderType = 'openai-compatible' | 'gemini-compatible' | 'flow2api'
 
 type TestProviderPayload = {
   apiType: CompatibleProviderType | PresetProviderType
@@ -844,7 +844,7 @@ export async function testProviderConnection(payload: TestProviderPayload): Prom
   }
 
   // Compatible providers require baseUrl
-  if ((apiType === 'openai-compatible' || apiType === 'gemini-compatible') && !baseUrl) {
+  if ((apiType === 'openai-compatible' || apiType === 'gemini-compatible' || apiType === 'flow2api') && !baseUrl) {
     return {
       success: false,
       steps: [{ name: 'models', status: 'fail', message: 'Missing baseUrl' }],
@@ -855,6 +855,8 @@ export async function testProviderConnection(payload: TestProviderPayload): Prom
     case 'openai-compatible':
       return testCompatibleProvider(baseUrl!, apiKey, llmModel)
     case 'gemini-compatible':
+      return testCompatibleProvider(baseUrl!, apiKey, llmModel)
+    case 'flow2api':
       return testCompatibleProvider(baseUrl!, apiKey, llmModel)
     case 'yescale':
       return testCompatibleProvider('https://api.yescale.io/v1', apiKey, llmModel)

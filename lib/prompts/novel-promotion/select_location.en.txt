@@ -1,44 +1,120 @@
-You are a location asset extraction specialist.
-Extract locations that need dedicated background assets.
+You are a scene-asset builder. Based on the text I provide (novel, screenplay, or mixed format), filter scenes that need visual production and generate asset JSON for image generation and downstream production.
 
-Input text:
-{input}
+[Filtering Rules - Precision Extraction Mode]
 
-Existing location library:
-{locations_lib_name}
+✅ Scenes that must be extracted:
+  - Locations appearing in screenplay scene headings (e.g., INT Living Room Day)
+  - Concrete places where characters are physically present and interact
+  - Core locations where main story events occur
+  - Recurring or high-screen-time scenes
+  - Locations with explicit spatial description that require a background image
 
-Selection rules:
-1. Include locations where meaningful story actions happen.
-2. Exclude abstract/metaphorical spaces and one-off passing mentions.
-3. Deduplicate aliases of the same location.
-4. Prefer exact library names when a location already exists.
+❌ Scenes that must not be extracted (strict):
+  - One-off passing mentions with no actual plot event
+  - Metaphorical/rhetorical descriptions (e.g., from heaven to hell, from sky to ground, deep in the soul)
+  - Abstract/non-visualizable spaces (e.g., fate intersection, spacetime rift)
+  - Places mentioned only in dialogue without real scene need
+  - Pure transition movement descriptions (e.g., passing through corridor, walking past doorway)
+  - Flash memory/fantasy one-glimpse scenes without concrete plot
+  - Briefly mentioned battle-range rhetoric (e.g., fought across three realms)
 
-For each selected location, generate 3 wide-angle environment descriptions.
-Each description should:
-- start with location name in brackets: "[Location Name] ..."
-- describe spatial layout, depth layers, major objects, and lighting direction
-- remain environment-only (no named protagonist actions)
-- use concise, production-ready English
+📋 Decision standard:
+  Ask: does this scene need a standalone background image? Do characters have actual dramatic content here?
+  If a location is only a passing phrase, do not extract.
+  If it is battle-scope rhetoric, do not extract.
 
-Output format (JSON only):
+🔄 Deduplication rules:
+  - Skip scenes already in library: {locations_lib_name}
+  - Merge different names referring to the same scene
+  - Returned scene names must exactly match existing library names when applicable
+
+[Scene Generation Requirement - A: Panoramic Space Version]
+Focus: broad complete spatial overview, overall layout, and image depth.
+
+⚠️ Core requirement: generate a wide panoramic full-space view, not local close-up.
+- Use wide-angle/long-shot perspective to show complete space
+- Show full boundaries (walls/floor/ceiling or sky/horizon)
+- Viewer must clearly understand the complete type of space
+- Follow source-text scene description as first priority
+
+1. Description opening must explicitly state scene name:
+   - Each description must start with 「SceneName」
+
+2. Generate 3 Chinese environment descriptions per scene (for AI image generation), for user selection
+
+3. Requirements for the 3 descriptions:
+   - All aligned with source scene characteristics
+   - Detail variation is allowed, but overall style must stay consistent
+   - All in wide-angle/long-shot full-space view
+   - Each starts with 「SceneName」
+
+4. Every description must include:
+
+   Broad spatial sense (most important):
+   - Wide-angle or long-shot covering most of space
+   - Indoor: show 2-3 walls, floor, and partial ceiling
+   - Outdoor: show open field of view and distant horizon/architecture
+
+   Spatial type and scale:
+   - Scene category (indoor/outdoor/fantasy)
+   - Space scale (e.g., around 30 square meter living room / grassland stretching beyond sight)
+   - Vertical/depth reach
+
+   Spatial layering (depth creation):
+   - Foreground: near-camera partial elements
+   - Midground: main scene area
+   - Background: distant visible elements
+
+   Object layout:
+   - Use explicit position words: left/right/center/corner/by window/in distance
+   - Describe object spatial relations and depth
+   - 5-8 objects, each with position
+
+   Lighting direction:
+   - Direction of incoming light and lit zones
+
+5. Description standard:
+   - Emphasize position relation words
+   - Length 100-150 Chinese characters
+
+   ⚠️ No named characters in scene backgrounds (core rule):
+   Scene images are pure background plates. Main roles will be composited later.
+   Therefore, descriptions must not include any named character.
+
+   ✅ Allowed: nameless blurred crowd terms (guests, passersby, pedestrians)
+   ❌ Not allowed: named protagonists or specific named roles
+
+   - Do not include art-style descriptors; style is added by system
+
+6. Scene naming rule: location_timeOrState
+  - Example: living_room_daytime, space_station_night, celestial_palace_dusk, forest_in_fog
+
+7. Key plot props must be reflected in scene (chairs, tables, etc.)
+
+8. Unless otherwise required, generate scenes in the user's input language style; however, actual location in script takes precedence
+
+[Output Specification (only this JSON structure; Chinese field names; no extra text)]
 {
   "locations": [
     {
-      "name": "location_name",
-      "summary": "short usage summary",
-      "has_crowd": false,
-      "crowd_description": "",
+      "name": "location_time",
+      "summary": "brief scene usage note",
+      "has_crowd": true/false,
+      "crowd_description": "crowd type when has_crowd is true",
       "descriptions": [
-        "[location_name] description 1",
-        "[location_name] description 2",
-        "[location_name] description 3"
+        "「scene_name」scene description 1",
+        "「scene_name」scene description 2",
+        "「scene_name」scene description 3"
       ]
     }
   ]
 }
 
-Strict constraints:
-1. JSON only.
-2. If no valid location exists, return: {"locations":[]}.
-3. ⚠️ JSON SAFETY: All quotation marks in text (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values.
-  
+[Strictness]
+- If no scene qualifies, return locations as [].
+- Return only the JSON above, no markdown/comment/explanation, no undefined fields.
+- Each description must obey 100-150 Chinese character limit; truncate if too long.
+- Do not include raw ASCII double quotes in JSON string values. Normalize all quotes to 「」; if ASCII quote is required, escape as \".
+
+[Source Text]
+{input}

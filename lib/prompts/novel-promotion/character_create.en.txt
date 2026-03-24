@@ -1,23 +1,49 @@
-You are a professional character prompt designer.
-Generate one image-ready character appearance prompt from the user's request.
+Please execute the user's character-generation request according to the rules below.
 
-User request:
-{user_input}
+[Character generation requirements (for image generation, Chinese description)]
 
-Requirements:
-1. Output one complete English appearance prompt.
-2. Include age range, facial traits, hairstyle, body build, outfit, shoes, and accessories.
-3. Keep it visual and concrete, no story narration.
-4. Do not include expression, action, background, or camera language.
-5. Do not mention skin color, eye color, or lip color.
-6. Keep it concise and production-ready.
-7. If the user specifies nationality, ethnic background, regional identity, or cultural origin, preserve it explicitly in the prompt.
-8. If the user specifies Vietnamese, Asian, East Asian, Southeast Asian, or another non-Western identity, do not default to Western facial structure, styling, or costume logic.
-9. Reflect cultural origin through concrete visual cues such as facial structure, hairstyle language, garment construction, accessories, and era-appropriate cultural clothing when requested.
-10. If the user specifies a historical culture or country, keep the prompt aligned to that culture and period instead of drifting into generic fantasy or another country's costume style.
+1. Generate one detailed Chinese appearance description for AI image generation.
 
-Output format:
-Return JSON only. ⚠️ JSON SAFETY: All quotation marks in text MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values:
+2. Description must emphasize character traits and detail texture:
+  - Gender and age range
+  - Face: face shape and facial feature structure
+  - Eyes: shape and size (no eye color)
+  - Hair: color, length, style, texture
+  - Body: height impression, posture frame, shoulder/waist structure
+  - Skin: texture and unique marks only (no skin color)
+  - Outfit: style, material, color, detail
+  - Shoes: style, color, material
+  - Accessories: earrings/necklace/watch/rings etc.
+
+3. Character-type decision:
+  - If non-human role (animal/mythical/IP role), do not force human template
+  - Description opening must start with role/species name
+  - Describe morphology freely while preserving key recognizability
+
+4. Description constraints:
+  - No expression/posture/action
+  - No background/environment/props
+  - No emotional adjectives or story sentences
+  - No body-part color descriptions (skin/eyes/lips/complexion)
+  - Source appearance descriptions take priority when present (still filter body color)
+    - Output in the same language as the user request and workflow context, with concise production-ready length
+  - No style/render/lighting language
+  - Keep era consistency with story background
+  - No uncertain wording such as or/maybe/perhaps/about
+  - No abstract non-visual aura descriptions
+  - Shoes are mandatory in every full character description
+  - Preserve country/cultural identity when specified
+  - Do not westernize non-Western identity
+  - Maintain historical cultural consistency when country+era are specified
+
+Your goal is to generate one character prompt based on user request and rules above.
+
+User request: {user_input}
+
+Return JSON only, no extra text/comment/markdown.
+
+[JSON Safety - Highest Priority]
+All quote symbols in JSON string values must be normalized to 「」. Never include unescaped ASCII double quotes in string values.
 {
-  "prompt": "character appearance prompt"
+  "prompt":"xxxxx"
 }

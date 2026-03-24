@@ -101,6 +101,16 @@ async function validateVideoCapabilityCombination(input: {
   const runtimeSelections = toVideoRuntimeSelections(payload.generationOptions)
   runtimeSelections.generationMode = resolveVideoGenerationMode(payload)
 
+  const parsedModel = parseModelKeyStrict(modelKey)
+  const providerKey = parsedModel ? parsedModel.provider.split(':')[0] : ''
+  if (providerKey === 'flow2api' && typeof runtimeSelections.generationMode === 'string') {
+    if (runtimeSelections.generationMode === 'normal') {
+      runtimeSelections.generationMode = 't2v'
+    } else if (runtimeSelections.generationMode === 'firstlastframe') {
+      runtimeSelections.generationMode = 'i2v'
+    }
+  }
+
   let resolvedOptions: Record<string, CapabilityValue>
   try {
     resolvedOptions = await resolveProjectModelCapabilityGenerationOptions({

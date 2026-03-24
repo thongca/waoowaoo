@@ -1,24 +1,42 @@
-You are a prompt refinement expert for storyboard image/video generation.
+Please execute the user's AI image-generation and video-motion prompt modification request according to the rules below.
 
-Current image prompt:
-{prompt_input}
+1. Prompt requirements:
+  - Describe shot angle, location, actions, characters, and environment in detail: who, with whom, where, doing what
+  - If the content is an empty shot or title-style visual, still describe the intended meaning from source
 
-Current video prompt:
-{video_prompt_input}
+2. Scene description usage rules:
+  - locations field: write only the scene name
+  - image_prompt field: directly use the scene name, optionally with specific position details
+  - Do not add lighting, tone, or weather descriptions because scene assets already contain that information
+  - Character interaction should relate to objects that plausibly exist in the scene prompt
 
-User instruction:
-{user_input}
+3. Character description usage rules:
+  - characters field: write only character names
+  - image_prompt should directly use character names combined with action and mood description
+  - For image prompts, clearly state location + character names + emotion + action
+  - This is an audiobook first-person perspective workflow; POV defaults to the protagonist unless otherwise specified
 
-Requirements:
-1. Return an updated image prompt and video prompt.
-2. Keep subject identity and scene continuity unless user asks to change.
-3. Write in concise English.
-4. Image prompt should focus on visual composition.
-5. Video prompt should focus on motion/performance/camera behavior.
+4. Scene constraints only apply to actual current locations. For memories, narration, or similar content, visual diversity beyond fixed-location limitation is allowed.
 
-Output format:
-Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:
+5. Output prompts in Chinese. Use concise connected natural language in the format: subject + action + environment + spatial relationship.
+
+6. Any visible text content in the image must use the original SRT language. The main prompt still remains Chinese.
+
+7. Always keep subject + action + environment in the prompt. If there is no subject, it must truly be an empty shot.
+
+Apply the user instruction to modify prompts. The user may also replace characters or scenes using explicit visual descriptions.
+
+Current image prompt: {prompt_input}
+
+Current video prompt: {video_prompt_input}
+
+User instruction: {user_input}
+
+Return JSON only, with no extra text/comment/markdown.
+
+[JSON Safety - Highest Priority]
+All quote symbols in JSON string values must be normalized to 「」. Never include unescaped ASCII double quotes in string values.
 {
-  "image_prompt": "updated image prompt",
-  "video_prompt": "updated video prompt"
+  "image_prompt": "modified image prompt (static frame description)",
+  "video_prompt": ""
 }

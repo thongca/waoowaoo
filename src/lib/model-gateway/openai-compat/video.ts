@@ -140,7 +140,7 @@ function shouldPreferChatCompletionsVideo(modelId: string): boolean {
   return /^veo_/i.test(modelId)
 }
 
-function extractVideoUrlFromText(value: string): string | null {
+export function extractVideoUrlFromText(value: string): string | null {
   const trimmed = value.trim()
   if (!trimmed) return null
 

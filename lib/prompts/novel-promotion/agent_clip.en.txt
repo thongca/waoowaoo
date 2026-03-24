@@ -1,11 +1,79 @@
-You are a story clip segmentation expert.
-Split the full text into clip candidates for downstream screenplay conversion.
+You are a master of screenplay/text pre-segmentation.
+Task: split the entire user input text into several batches by scene/plot boundaries so downstream storyboard conversion can process them in order. Return JSON only, with exactly this structure: start is the beginning anchor text, end is the ending anchor text. No extra text and no markdown markers are allowed.
 
-Full text:
+Output format and requirement:
+[
+  {
+    "start": opening text, at least five characters,
+    "end": ending text, at least five characters,
+    "summary": "concise summary of this segment",
+    "location": "where this segment happens",
+    "characters": ["character1", "character2"]
+  }
+]
+
+Split using the following rules:
+
+[What is a "content element" - must understand]
+A content element is the smallest unit in source text that can become one independent shot, including:
+- Action description: each independent action = 1 element
+  Example: "he stands up" = 1 element; "he stands up, walks to the door, pushes it open" = 3 elements
+- Dialogue line: each dialogue segment = 2 elements (speaker + listener reaction)
+  Example: "Your Majesty, please allow me to introduce..." = 2 elements
+- Emotion/reaction description: each character reaction = 1 element
+  Example: "The emperor frowns, the empress looks solemn" = 2 elements
+- Scene description: establishing scene description = 1-2 elements
+- Inner monologue/voiceover: each monologue segment = 1 element
+
+[Counting example]
+Source text: "He walks into the room and sees her sitting by the window. She looks up at him with tears in her eyes and says softly: you finally came."
+- "He walks into the room" = 1 element (action)
+- "sees her sitting by the window" = 1 element (scene/action observation)
+- "she looks up at him, tears in her eyes" = 2 elements (action + emotion)
+- "says softly: you finally came" = 2 elements (dialogue)
+Total: 6 elements
+
+1. [Minimize number of segments - highest priority]
+   - Each segment can contain up to about 20 content elements (as defined above)
+   - If total source elements <= 20, you must output only 1 segment; splitting is forbidden
+   - If total source elements <= 40, output at most 2 segments
+   - Prefer slightly longer segments rather than over-splitting
+   - Split only when one segment exceeds 20 elements, and split at scene-change boundaries
+2. Splits should preserve narrative completeness. Do not cut in the middle of active plot beats.
+3. Split as much as possible before new characters/new scenes begin. Prioritize cuts at scene/character transitions, not in the middle of new beats.
+4. All {start,end} batches must be contiguous, ordered by time, with no overlap and no gap, fully covering full input text.
+5. Return JSON only; no markdown code fences, comments, explanations, or undefined fields.
+6. If the input is first-person narrative where POV may be unclear after splitting, summary must explicitly mark POV as "First-person POV: xxx". If the script already has clear POV metadata, normal summary is sufficient.
+7. Perspective should follow the initial POV and remain consistent for the whole text unless source explicitly switches POV mid-way.
+8. Segmentation must cover the full input script/text completely.
+
+[JSON Safety Output - Highest Priority]
+- All quote forms in source text ("" '' 「」 『』 etc.) must be normalized to Japanese corner brackets 「」 in JSON string values.
+- Never output raw English double quote " inside JSON string values; it can break JSON.
+- Correct: 「Bima Wen, I am here to replace you」
+- Incorrect: "Bima Wen, I am here to replace you"
+- This applies to start, end, summary, and all string fields.
+
+[Asset Selection - Highest Priority]
+
+[location selection - must match exactly]
+1. location may only use names that exactly match entries in location library.
+2. Do not append suffixes. Example: if library has "Living Room", do not output "Living Room_Interior_Day".
+3. Do not rewrite, abbreviate, or mutate location names.
+4. If multiple locations occur in one segment, separate by comma: for example "Living Room,Bedroom".
+5. If no scene matches library, choose closest available or leave null.
+
+[characters selection - must match exactly]
+1. characters array may only use names that exactly match entries in character library.
+2. Do not use alternate source aliases; always map to canonical library name.
+3. Example: if library has "Zhang San" and source says "Old Zhang" or "Boss Zhang", output must still be "Zhang San".
+4. Use [Character Introductions] to resolve first-person "I" and address-name mapping.
+
+[Self-check before output]
+For each name in location and characters, verify exact match exists in library. If not, correct it before output.
+
+Source text:
 {input}
-
-Only segment the Full text section above.
-The library sections below are reference only and must never be treated as clip content.
 
 Location library:
 {locations_lib_name}
@@ -13,25 +81,5 @@ Location library:
 Character library:
 {characters_lib_name}
 
-Character introductions:
+Character introductions (used to map "I" and aliases):
 {characters_introduction}
-
-Output format (JSON array only):
-[
-  {
-    "start": "exact start snippet from source text (>=5 chars)",
-    "end": "exact end snippet from source text (>=5 chars)",
-    "summary": "short clip summary",
-    "location": "best matched location name",
-    "characters": ["Character A", "Character B"]
-  }
-]
-
-Rules:
-1. Keep clips contiguous, ordered, and fully covering the source text.
-2. Prefer natural scene/drama boundaries.
-3. Minimize over-splitting.
-4. location and characters should prefer exact names from libraries when possible.
-5. Return JSON only, no markdown or extra text.
-6. ⚠️ JSON SAFETY: All quotation marks in dialogue (""''「」 etc.) MUST be converted to corner brackets「」in JSON string values. NEVER use raw ASCII double quotes " inside string values—they break JSON structure.
-7. Do not create clips for library/reference sections such as Location library, Character library, or Character introductions.

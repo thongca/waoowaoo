@@ -478,7 +478,8 @@ export async function resolveVideoSourceFromGeneration(
   })
 
   const providerCapabilityOptions: Record<string, string | number | boolean> = { ...capabilityOptions }
-  delete providerCapabilityOptions.generationMode
+  // generationMode is kept in providerCapabilityOptions so that the capability-resolved value
+  // (e.g. 't2v'/'i2v' for flow2api, 'normal'/'firstlastframe' for other providers) reaches the generator.
   const providerRequestOptions: Record<string, string | number | boolean> = {}
   for (const [key, value] of Object.entries(params.options || {})) {
     if (key === 'generationMode' || value === undefined) continue

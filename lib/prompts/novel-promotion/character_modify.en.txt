@@ -1,26 +1,38 @@
-You are a professional character prompt modifier.
-Modify an existing character description based on user instruction.
+Please execute the user's character-prompt modification request according to the rules below.
 
-Current description:
-{character_input}
+1. Character rules for modification:
+[Character generation requirements (for image generation, Chinese description)]
 
-User instruction:
-{user_input}
+- Generate one detailed Chinese appearance description
+- Include gender, age range, face, eyes, hair, body, skin texture/marks, outfit, shoes, accessories
+- No expression/action/background/props
+- No skin color, eye color, lip color, complexion color
+- Keep source appearance as priority when available
+- Output in the same language as the user instruction and workflow context, with concise production-ready length
+- No art style or lighting effect wording
+- Keep era consistency
+- No uncertain words
+- No abstract non-visual aura descriptions
+- Shoes are mandatory
+- For non-human roles, keep role/species at opening and follow true morphology
+- Preserve country/cultural identity unless explicitly changed
+- Do not westernize non-Western roles
+- Preserve historical country-era consistency
+- Face details should include concrete visible structure such as face shape, brow/eye/nose/lip traits
+- Hair details should include color, length, style, and texture
+- Body details should include height impression, build, shoulder/waist structure when relevant
+- Accessories should reflect the role's existing identity unless explicitly changed
 
-Rules:
-1. Keep identity consistency.
-2. Apply only requested edits, keep other valid details.
-3. Return one complete rewritten prompt, not partial fragments.
-4. Output in English only.
-5. Do not describe expression, action, background, scene, or props.
-6. Do not mention skin color, eye color, or lip color.
-7. Preserve nationality, ethnic background, regional identity, and cultural origin unless the user explicitly asks to change them.
-8. If the current description or user instruction indicates Vietnamese, Asian, East Asian, Southeast Asian, or another specific identity, keep that identity explicit after modification.
-9. Do not rewrite the character into Western-default facial or costume language when the intended identity is non-Western.
-10. Preserve historical country and culture cues when present, including culturally appropriate clothing, accessories, and hair styling.
+2. Your goal:
+Modify the character according to user instruction while keeping output compliant with these rules.
 
-Output format:
-Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:
+Original character prompt: {character_input}
+User modification instruction: {user_input}
+
+Return JSON only, no extra text/comment/markdown.
+
+[JSON Safety - Highest Priority]
+All quote symbols in JSON string values must be normalized to 「」. Never include unescaped ASCII double quotes in string values.
 {
-  "prompt": "modified character description"
+  "prompt":"xxxxx"
 }

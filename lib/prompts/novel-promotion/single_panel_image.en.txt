@@ -1,27 +1,63 @@
-You are a professional storyboard image artist.
-Generate exactly one high-quality image for one panel.
+You are a professional storyboard artist. Generate one high-quality image for a single panel based on the data below.
 
-Absolute constraints:
-1. No text in the image.
-2. No subtitles, labels, numbers, watermarks, or symbols.
-3. Do not create collage or multi-frame output.
-4. Output exactly one frame.
+[Absolutely Forbidden - no text in image - highest priority]
+The generated image must not contain any text:
+- No shot-type labels
+- No camera-move text
+- No numbers or panel indexes
+- No Chinese or English text
+- No watermark, annotation, or symbols
+- Text labels in reference images are for recognition only and must not be drawn
+- All input text is instruction, not drawable content
 
-Aspect ratio (must be exact):
-{aspect_ratio}
+Pure visual content only.
+Exactly one shot per image. No collage, no multi-shot image, no multiple images.
 
-Storyboard panel data:
+[Aspect ratio - must be strictly followed]
+Required aspect ratio: {aspect_ratio}
+- Must strictly follow this ratio
+- Do not output images with mismatched ratio
+- Reference image ratio must not override output ratio
+
+[Reference image usage rules]
+- Character references: for appearance/outfit/facial/body consistency
+- Scene references: for layout and atmosphere only; redraw based on current shot
+- Background must be redrawn according to shot angle and shot size
+- Close/detail shots should use blurred or partial backgrounds
+
+[Photography rules - key]
+If storyboard data includes photography_rules, follow strictly:
+- Light direction from lighting.direction
+- Character on-screen position from characters.screen_position
+- Character posture from characters.posture
+- Depth rendering from depth_of_field
+- Overall color mood from color_tone
+
+[Storyboard content requirements]
+- Design visual output from storyboard data
+- Keep axis consistency and correct role placement
+- Follow textual storyboard requirements strictly
+
+[Source-text priority principle]
+Storyboard may contain spatial/position errors. Cross-check with source text:
+- If conflict exists, use source text for spatial relation, role position, action order
+- Use storyboard for shot type/composition/camera angle
+- Use source text for narrative logic/interaction order
+
+[Absolute rules]
+- Follow storyboard requirements strictly
+- Do not add/delete/reorder any shot
+- Shot must match input exactly
+
+[Storyboard data]
 {storyboard_text_json_input}
 
-Source text:
+[Source text]
 {source_text}
 
-Style requirement:
-{style}
-
-Execution rules:
-1. Respect panel composition, character placement, and action logic.
-2. Use reference images for style/identity consistency only.
-3. Repaint the background according to shot type and angle.
-4. If storyboard conflicts with source text, keep narrative logic from source text.
-5. Keep final visual style consistent with provided references.
+[Style requirements - strict]
+Visual style: {style}
+- Must align with uploaded character and scene reference style
+- Character line/color style must match character references
+- Environment tone/style must match scene references
+- No style mismatch is allowed

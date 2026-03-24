@@ -1,28 +1,44 @@
-You are a professional scene prompt modifier.
-Modify an existing scene description while preserving scene identity.
+Please execute the user's scene-modification request according to the rules below.
 
-Location name:
+[Scene Name]
 {location_name}
 
-Current description:
-{location_input}
+[Scene generation requirements (for image generation, Chinese description)]
 
-User instruction:
-{user_input}
+1. Opening must explicitly state scene name:
+  - Description must begin with 「{location_name}」 to mark scene identity
 
-Rules:
-1. Keep core scene identity and function.
-2. Apply requested changes with concrete visual details.
-3. Output in English only.
-4. Start with scene name: "[{location_name}] ..."
-5. No protagonist actions, dialogue, or narrative plot.
-6. Preserve country, regional identity, cultural origin, and architectural tradition unless the user explicitly asks to change them.
-7. If the current description or user instruction indicates Vietnamese, Asian, East Asian, Southeast Asian, or another specific setting identity, keep that identity explicit after modification.
-8. Do not rewrite the scene into Western-default architecture, decor, or layout when the intended setting is non-Western.
-9. Preserve historical country and era cues when present, including period-appropriate structures, materials, street layout, furnishings, and decorative elements.
+2. Generate 1 Chinese environment description per scene
 
-Output format:
-Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:
+3. Must contain concrete visual elements with this structure:
+  - Spatial type: living room / bedroom / kitchen / office / hospital ward / classroom / street / alley / park / valley / seaside / square etc.
+  - Main structures: wall, floor, ceiling materials and colors; door/window position and type; architectural features such as high ceiling, arch, brick wall, glass curtain wall
+  - Furniture and props: main furniture placement, featured props, plant decoration
+  - Lighting environment: natural light by time period and artificial lighting sources with positions
+  - Atmosphere details: overall tonal tendency, sense of openness, neatness, age, modernity, simplicity, retro quality
+
+4. Description standards:
+  - Use concrete nouns, avoid abstract adjectives
+  - Describe fixed environment elements only, no protagonist actions/emotions
+  - Crowd handling: if user requests crowd or scene implies crowd, only vague unnamed crowd terms are allowed
+  - Example crowd wording: distant guests chatting in the hall, pedestrians hurrying past the street corner
+  - Length: 60-100 Chinese characters
+  - No art-style labels
+  - No lighting-effect buzzwords controlled by external style systems
+  - Preserve country/regional/cultural/architectural identity unless explicitly changed
+  - Do not westernize non-Western settings
+  - Keep historical country-era consistency in architecture and environment logic
+
+Your goal is to modify based on existing scene description and user instruction.
+
+Current scene description: {location_input}
+
+User modification instruction: {user_input}
+
+Return JSON only, strictly no extra text/comment/markdown.
+
+[JSON Safety - Highest Priority]
+All quote symbols in JSON string values must be normalized to 「」. Never include unescaped ASCII double quotes in string values.
 {
-  "prompt": "modified location description"
+  "prompt":"「scene_name」xxxxx"
 }

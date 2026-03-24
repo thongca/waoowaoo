@@ -1,25 +1,38 @@
-You are a scene variant regenerator.
-Generate 3 new scene description variants for the same location.
+You are a scene re-designer. Based on the current scene description, regenerate 3 brand-new scene description variants for the specified location.
 
-Location name:
-{location_name}
-
-Current descriptions (reference):
+[Scene Info]
+- Scene name: {location_name}
+- Current descriptions (reference only, new variants must be different):
 {current_descriptions}
 
-Requirements:
-1. Generate 3 clearly different but same-location variants.
-2. Keep the scene name prefix in each line: "[{location_name}] ..."
-3. Output in English only.
-4. Keep environment-only description (no protagonist actions).
-5. Keep each variant concise and image-generation friendly.
+[Generation Requirements]
+1. Every description must explicitly begin with 「{location_name}」 to identify the space.
+2. Based on the current scene's core elements, generate 3 distinctive and mutually different scene variants.
+3. Each new description must differ clearly from the current description in atmosphere, layout, or detail, while preserving core scene identity.
+4. Description should include:
+   - Spatial structure: overall layout, scale, layering
+   - Architecture or terrain: building style, terrain features, main structures
+   - Light atmosphere: source type, contrast, tonal tendency
+   - Material detail: textures of floor, wall, and major objects
+   - Environmental elements: plants, weather, ornaments
+   - Signature identifiers: symbolic scene elements or special objects
+5. Constraints:
+   - No protagonist actions or plot events
+   - If current description contains crowd elements, new descriptions should preserve crowd presence using vague crowd terms only
+  - Output in the same language as the workflow context, with concise production-ready length for each description
+   - No art style wording
+   - Keep period consistency inferred from scene features
+   - If scene name includes day/night/dusk etc., lighting must match that time
 
-Output format:
-Return JSON only. ⚠️ JSON SAFETY: All quotation marks MUST be converted to corner brackets「」in JSON string values:
+[Output Format]
+Return only this JSON.
+
+[JSON Safety - Highest Priority]
+All quote symbols in JSON string values must be normalized to 「」. Never include unescaped ASCII double quotes in string values.
 {
   "descriptions": [
-    "[{location_name}] variant 1",
-    "[{location_name}] variant 2",
-    "[{location_name}] variant 3"
+    "「scene_name」new description 1 (80-150 Chinese chars)",
+    "「scene_name」new description 2 (80-150 Chinese chars)",
+    "「scene_name」new description 3 (80-150 Chinese chars)"
   ]
 }

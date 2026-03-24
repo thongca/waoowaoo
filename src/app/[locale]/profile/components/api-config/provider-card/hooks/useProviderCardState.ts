@@ -185,7 +185,9 @@ export function buildProviderConnectionPayload(params: {
     llmModel,
   })
   const isCompatibleProvider =
-    params.providerKey === 'openai-compatible' || params.providerKey === 'gemini-compatible'
+    params.providerKey === 'openai-compatible'
+    || params.providerKey === 'gemini-compatible'
+    || params.providerKey === 'flow2api'
 
   if (isCompatibleProvider && compatibleBaseUrl) {
     return {
